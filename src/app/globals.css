@@ -1,26 +1,51 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* Primary Colors */
+  --dark-sapphire: #1A2B3C;
+  --charcoal-gray: #333333;
+  
+  /* Accent Colors */
+  --vibrant-teal: #00B8D4;
+  --goldenrod: #FFC107;
+  
+  /* Neutral Colors */
+  --light-gray: #E0E0E0;
+  --white: #FFFFFF;
+  
+  /* Typography Colors */
+  --text-on-dark: #FFFFFF;
+  --text-on-light: #333333;
+  --text-accent: #00B8D4;
+  
+  /* Theme Colors */
+  --background: var(--dark-sapphire);
+  --foreground: var(--text-on-dark);
+  --card-background: var(--charcoal-gray);
+  --accent: var(--vibrant-teal);
+  --secondary-accent: var(--goldenrod);
+  --border-color: var(--light-gray);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Utility Classes */
+.text-accent {
+  color: var(--text-accent);
+}
+
+.bg-accent {
+  background-color: var(--accent);
+}
+
+.bg-secondary-accent {
+  background-color: var(--secondary-accent);
+}
+
+.border-light {
+  border-color: var(--border-color);
 }
