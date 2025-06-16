@@ -35,6 +35,58 @@ interface AdminInfo {
   confirmPassword: string
 }
 
+interface ValidationErrors {
+  business?: {
+    [key: string]: string
+  }
+  admin?: {
+    [key: string]: string
+  }
+}
+
+const validateEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  return emailRegex.test(email)
+}
+
+const validatePhoneNumber = (phone: string): boolean => {
+  if (!phone) return true // Optional field
+  
+  // Remove all non-digit characters except '+' for international prefix
+  const cleanedPhone = phone.replace(/[^\d+]/g, '')
+  
+  // Check if it's a valid US number (exactly 10 digits) or international number (starts with + and has 11-12 digits)
+  // Also ensure the total length is not longer than expected
+  if (cleanedPhone.startsWith('+')) {
+    return cleanedPhone.length >= 12 && cleanedPhone.length <= 13 && /^\+\d{11,12}$/.test(cleanedPhone)
+  }
+  return cleanedPhone.length === 10 && /^\d{10}$/.test(cleanedPhone)
+}
+
+const validateWebsite = (website: string): boolean => {
+  if (!website) return true // Optional field
+  // Regex that accepts full URLs with paths and protocols
+  const websiteRegex = /^(https?:\/\/)?(www\.)?[a-zA-Z0-9][a-zA-Z0-9-]*(\.[a-zA-Z0-9][a-zA-Z0-9-]*)*\.[a-zA-Z]{2,}(\/[^\s]*)?$/
+  return websiteRegex.test(website.trim())
+}
+
+const validatePostalCode = (postalCode: string): boolean => {
+  // US ZIP code format (5 digits or ZIP+4)
+  const usZipRegex = /^\d{5}(-\d{4})?$/
+  return usZipRegex.test(postalCode)
+}
+
+const validateName = (name: string): boolean => {
+  const nameRegex = /^[a-zA-Z\s'-]{2,50}$/
+  return nameRegex.test(name)
+}
+
+const validatePassword = (password: string): boolean => {
+  // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
+  return passwordRegex.test(password)
+}
+
 export default function Component() {
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>({
     name: "",
@@ -54,6 +106,7 @@ export default function Component() {
     confirmPassword: "",
   })
 
+  const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isGoogleLoaded, setIsGoogleLoaded] = useState(false)
@@ -163,12 +216,83 @@ export default function Component() {
     }))
   }
 
+  const validateForm = (): boolean => {
+    const errors: ValidationErrors = {
+      business: {},
+      admin: {}
+    }
+    let isValid = true
+
+    // Business Info Validation
+    if (!businessInfo.name.trim()) {
+      errors.business!.name = "Business name is required"
+      isValid = false
+    }
+
+    if (!businessInfo.streetAddress.trim()) {
+      errors.business!.streetAddress = "Street address is required"
+      isValid = false
+    }
+
+    if (!businessInfo.city.trim()) {
+      errors.business!.city = "City is required"
+      isValid = false
+    }
+
+    if (!businessInfo.state.trim()) {
+      errors.business!.state = "State is required"
+      isValid = false
+    }
+
+    if (!validatePostalCode(businessInfo.postalCode)) {
+      errors.business!.postalCode = "Invalid postal code format"
+      isValid = false
+    }
+
+    if (businessInfo.phone && !validatePhoneNumber(businessInfo.phone)) {
+      errors.business!.phone = "Invalid phone number format"
+      isValid = false
+    }
+
+    if (businessInfo.website && !validateWebsite(businessInfo.website)) {
+      errors.business!.website = "Invalid website URL format"
+      isValid = false
+    }
+
+    // Admin Info Validation
+    if (!validateName(adminInfo.firstName)) {
+      errors.admin!.firstName = "First name must contain only letters, spaces, hyphens, and apostrophes (2-50 characters)"
+      isValid = false
+    }
+
+    if (!validateName(adminInfo.lastName)) {
+      errors.admin!.lastName = "Last name must contain only letters, spaces, hyphens, and apostrophes (2-50 characters)"
+      isValid = false
+    }
+
+    if (!validateEmail(adminInfo.email)) {
+      errors.admin!.email = "Invalid email format"
+      isValid = false
+    }
+
+    if (!validatePassword(adminInfo.password)) {
+      errors.admin!.password = "Password must be at least 8 characters long and contain uppercase, lowercase, number, and special character"
+      isValid = false
+    }
+
+    if (adminInfo.password !== adminInfo.confirmPassword) {
+      errors.admin!.confirmPassword = "Passwords do not match"
+      isValid = false
+    }
+
+    setValidationErrors(errors)
+    return isValid
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Basic validation
-    if (adminInfo.password !== adminInfo.confirmPassword) {
-      alert("Passwords do not match")
+    if (!validateForm()) {
       return
     }
 
@@ -227,8 +351,13 @@ export default function Component() {
                     onChange={(e) => handleBusinessInfoChange("name", e.target.value)}
                     placeholder="Enter business name"
                     required
-                    className="bg-background border-border-light text-foreground text-[var(--dark-sapphire)]"
+                    className={`bg-background border-border-light text-foreground text-[var(--dark-sapphire)] ${
+                      validationErrors.business?.name ? "border-red-500" : ""
+                    }`}
                   />
+                  {validationErrors.business?.name && (
+                    <p className="text-sm text-red-600">{validationErrors.business.name}</p>
+                  )}
                 </div>
 
                 <div className="md:col-span-2 space-y-2">
@@ -273,10 +402,15 @@ export default function Component() {
                     id="postal-code"
                     value={businessInfo.postalCode}
                     onChange={(e) => handleBusinessInfoChange("postalCode", e.target.value)}
-                    placeholder="Enter postal code"
+                    placeholder="Enter postal code (e.g., A1A 1A1)"
                     required
-                    className="bg-background border-border-light text-foreground text-[var(--dark-sapphire)]"
+                    className={`bg-background border-border-light text-foreground text-[var(--dark-sapphire)] ${
+                      validationErrors.business?.postalCode ? "border-red-500" : ""
+                    }`}
                   />
+                  {validationErrors.business?.postalCode && (
+                    <p className="text-sm text-red-600">{validationErrors.business.postalCode}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -287,20 +421,30 @@ export default function Component() {
                     value={businessInfo.phone}
                     onChange={(e) => handleBusinessInfoChange("phone", e.target.value)}
                     placeholder="Enter phone number"
-                    className="bg-background border-border-light text-foreground text-[var(--dark-sapphire)]"
+                    className={`bg-background border-border-light text-foreground text-[var(--dark-sapphire)] ${
+                      validationErrors.business?.phone ? "border-red-500" : ""
+                    }`}
                   />
+                  {validationErrors.business?.phone && (
+                    <p className="text-sm text-red-600">{validationErrors.business.phone}</p>
+                  )}
                 </div>
 
                 <div className="md:col-span-2 space-y-2">
                   <Label htmlFor="website" className="text-foreground text-[var(--dark-sapphire)]">Website</Label>
                   <Input
                     id="website"
-                    type="url"
+                    type="text"
                     value={businessInfo.website}
                     onChange={(e) => handleBusinessInfoChange("website", e.target.value)}
                     placeholder="https://www.example.com"
-                    className="bg-background border-border-light text-foreground text-[var(--dark-sapphire)]"
+                    className={`bg-background border-border-light text-foreground text-[var(--dark-sapphire)] ${
+                      validationErrors.business?.website ? "border-red-500" : ""
+                    }`}
                   />
+                  {validationErrors.business?.website && (
+                    <p className="text-sm text-red-600">{validationErrors.business.website}</p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -327,8 +471,13 @@ export default function Component() {
                     onChange={(e) => handleAdminInfoChange("firstName", e.target.value)}
                     placeholder="Enter first name"
                     required
-                    className="bg-background border-border-light text-foreground text-[var(--dark-sapphire)]"
+                    className={`bg-background border-border-light text-foreground text-[var(--dark-sapphire)] ${
+                      validationErrors.admin?.firstName ? "border-red-500" : ""
+                    }`}
                   />
+                  {validationErrors.admin?.firstName && (
+                    <p className="text-sm text-red-600">{validationErrors.admin.firstName}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -339,8 +488,13 @@ export default function Component() {
                     onChange={(e) => handleAdminInfoChange("lastName", e.target.value)}
                     placeholder="Enter last name"
                     required
-                    className="bg-background border-border-light text-foreground text-[var(--dark-sapphire)]"
+                    className={`bg-background border-border-light text-foreground text-[var(--dark-sapphire)] ${
+                      validationErrors.admin?.lastName ? "border-red-500" : ""
+                    }`}
                   />
+                  {validationErrors.admin?.lastName && (
+                    <p className="text-sm text-red-600">{validationErrors.admin.lastName}</p>
+                  )}
                 </div>
 
                 <div className="md:col-span-2 space-y-2">
@@ -352,8 +506,13 @@ export default function Component() {
                     onChange={(e) => handleAdminInfoChange("email", e.target.value)}
                     placeholder="admin@example.com"
                     required
-                    className="bg-background border-border-light text-foreground text-[var(--dark-sapphire)]"
+                    className={`bg-background border-border-light text-foreground text-[var(--dark-sapphire)] ${
+                      validationErrors.admin?.email ? "border-red-500" : ""
+                    }`}
                   />
+                  {validationErrors.admin?.email && (
+                    <p className="text-sm text-red-600">{validationErrors.admin.email}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -366,7 +525,9 @@ export default function Component() {
                       onChange={(e) => handleAdminInfoChange("password", e.target.value)}
                       placeholder="Create a strong password"
                       required
-                      className="bg-background border-border-light text-foreground text-[var(--dark-sapphire)]"
+                      className={`bg-background border-border-light text-foreground text-[var(--dark-sapphire)] ${
+                        validationErrors.admin?.password ? "border-red-500" : ""
+                      }`}
                     />
                     <Button
                       type="button"
@@ -378,6 +539,9 @@ export default function Component() {
                       {showPassword ? <EyeOff className="h-4 w-4 text-accent" /> : <Eye className="h-4 w-4 text-accent" />}
                     </Button>
                   </div>
+                  {validationErrors.admin?.password && (
+                    <p className="text-sm text-red-600">{validationErrors.admin.password}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -390,7 +554,9 @@ export default function Component() {
                       onChange={(e) => handleAdminInfoChange("confirmPassword", e.target.value)}
                       placeholder="Confirm your password"
                       required
-                      className="bg-background border-border-light text-foreground text-[var(--dark-sapphire)]"
+                      className={`bg-background border-border-light text-foreground text-[var(--dark-sapphire)] ${
+                        validationErrors.admin?.confirmPassword ? "border-red-500" : ""
+                      }`}
                     />
                     <Button
                       type="button"
@@ -402,6 +568,9 @@ export default function Component() {
                       {showConfirmPassword ? <EyeOff className="h-4 w-4 text-accent" /> : <Eye className="h-4 w-4 text-accent" />}
                     </Button>
                   </div>
+                  {validationErrors.admin?.confirmPassword && (
+                    <p className="text-sm text-red-600">{validationErrors.admin.confirmPassword}</p>
+                  )}
                 </div>
               </div>
 
