@@ -51,16 +51,8 @@ const validateEmail = (email: string): boolean => {
 
 const validatePhoneNumber = (phone: string): boolean => {
   if (!phone) return true // Optional field
-  
-  // Remove all non-digit characters except '+' for international prefix
-  const cleanedPhone = phone.replace(/[^\d+]/g, '')
-  
-  // Check if it's a valid US number (exactly 10 digits) or international number (starts with + and has 11-12 digits)
-  // Also ensure the total length is not longer than expected
-  if (cleanedPhone.startsWith('+')) {
-    return cleanedPhone.length >= 12 && cleanedPhone.length <= 13 && /^\+\d{11,12}$/.test(cleanedPhone)
-  }
-  return cleanedPhone.length === 10 && /^\d{10}$/.test(cleanedPhone)
+  const phoneRegex = /^\(?(\d{3})\)?[-.\s]?(\d{3})[-.\s]?(\d{4})$/
+  return phoneRegex.test(phone)
 }
 
 const validateWebsite = (website: string): boolean => {
@@ -72,7 +64,7 @@ const validateWebsite = (website: string): boolean => {
 
 const validatePostalCode = (postalCode: string): boolean => {
   // US ZIP code format (5 digits or ZIP+4)
-  const usZipRegex = /^\d{5}(-\d{4})?$/
+  const usZipRegex = /^\d{5}(?:[-\s]\d{4})?$/
   return usZipRegex.test(postalCode)
 }
 
@@ -402,7 +394,7 @@ export default function Component() {
                     id="postal-code"
                     value={businessInfo.postalCode}
                     onChange={(e) => handleBusinessInfoChange("postalCode", e.target.value)}
-                    placeholder="Enter postal code (e.g., A1A 1A1)"
+                    placeholder="Enter a 5-digit Zip Code or Zip+4 (e.g., 12345 or 12345-6789)"
                     required
                     className={`bg-background border-border-light text-foreground text-[var(--dark-sapphire)] ${
                       validationErrors.business?.postalCode ? "border-red-500" : ""
@@ -420,7 +412,7 @@ export default function Component() {
                     type="tel"
                     value={businessInfo.phone}
                     onChange={(e) => handleBusinessInfoChange("phone", e.target.value)}
-                    placeholder="Enter phone number"
+                    placeholder="Enter phone number (e.g., 123-456-7890)"
                     className={`bg-background border-border-light text-foreground text-[var(--dark-sapphire)] ${
                       validationErrors.business?.phone ? "border-red-500" : ""
                     }`}
