@@ -31,7 +31,7 @@ export default function SignInPage() {
           <div className="text-center space-y-4">
             <p className="text-gray-300 text-sm">
               Don't have an account?{" "}
-              <Link href="/business-sign-in" className="text-[var(--vibrant-teal)] hover:text-[var(--vibrant-teal)]/80 font-medium transition-colors">
+              <Link href="/business-signup" className="text-[var(--vibrant-teal)] hover:text-[var(--vibrant-teal)]/80 font-medium transition-colors">
                 Sign up here
               </Link>
             </p>
