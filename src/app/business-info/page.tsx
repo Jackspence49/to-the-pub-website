@@ -18,6 +18,7 @@ declare global {
 }
 
 interface Tag {
+  id?: number | string
   name: string
   category: 'type' | 'amenity'
 }
@@ -194,6 +195,9 @@ export default function Component() {
   const [tagsError, setTagsError] = useState<string | null>(null)
   // Use the server-side proxy to avoid browser CORS issues
   const TAGS_ENDPOINT = "/api/tags"
+  const BARS_ENDPOINT = "/api/bars"
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
+  const [serverError, setServerError] = useState<string | null>(null)
 
   useEffect(() => {
     let mounted = true
@@ -217,7 +221,8 @@ export default function Component() {
           tags = data.data
         }
 
-        if (mounted && tags.length > 0) {
+        if (mounted) {
+          // Upstream may return [] - keep whatever the upstream sent
           setAvailableTags(tags)
         }
       } catch (err: unknown) {
@@ -288,7 +293,16 @@ export default function Component() {
 
     return () => {
       if (autocompleteInstance.current) {
-        window.google?.maps?.event?.clearInstanceListeners(autocompleteInstance.current)
+        const win = window as unknown as {
+          google?: {
+            maps?: {
+              event?: {
+                clearInstanceListeners?: (instance: unknown) => void
+              }
+            }
+          }
+        }
+        win.google?.maps?.event?.clearInstanceListeners?.(autocompleteInstance.current)
       }
     }
   }, [])
@@ -391,7 +405,12 @@ export default function Component() {
   const handleTagRemove = (tagToRemove: Tag) => {
     setBusinessInfo((prev) => ({
       ...prev,
-      tags: prev.tags.filter(tag => !(tag.name === tagToRemove.name && tag.category === tagToRemove.category))
+      tags: prev.tags.filter(tag => {
+        if (tag.id !== undefined && tagToRemove.id !== undefined) {
+          return String(tag.id) !== String(tagToRemove.id)
+        }
+        return !(tag.name === tagToRemove.name && tag.category === tagToRemove.category)
+      })
     }))
   }
 
@@ -451,10 +470,6 @@ export default function Component() {
           errors.barHours![`${hours.dayOfWeek}_closeTime`] = "Close time is required"
           isValid = false
         }
-        if (hours.openTime && hours.closeTime && hours.openTime >= hours.closeTime) {
-          errors.barHours![`${hours.dayOfWeek}_times`] = "Close time must be after open time"
-          isValid = false
-        }
       }
     })
 
@@ -462,19 +477,100 @@ export default function Component() {
     return isValid
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const formatTimeHHMMSS = (t: string) => {
+    if (!t) return t
+    // If already has seconds
+    if (/^\d{2}:\d{2}:\d{2}$/.test(t)) return t
+    if (/^\d{2}:\d{2}$/.test(t)) return `${t}:00`
+    return t
+  }
+
+  const dedupeBarHours = (hoursArr: BarHours[]) => {
+    const map = new Map<number, BarHours>()
+    for (const h of hoursArr) {
+      if (!map.has(h.dayOfWeek)) {
+        map.set(h.dayOfWeek, h)
+      }
+    }
+    return Array.from(map.values())
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    setServerError(null)
 
     if (!validateForm()) {
       return
     }
 
-    console.log("Business Info:", businessInfo)
-    console.log("Bar Hours:", barHours)
-    console.log("Selected Tags:", businessInfo.tags)
+    if (isSubmitting) return
+    setIsSubmitting(true)
 
-    // Here you would typically send the data to your backend
-    alert("Form submitted successfully!")
+    try {
+      const dedupedHours = dedupeBarHours(barHours)
+
+      // Build payload matching the sample shape you provided.
+      // Assumptions: description, instagram, facebook are not collected in the form so we send sensible defaults.
+      const payload = {
+        name: businessInfo.name,
+        description: "", // no description field in the current form
+        address_street: businessInfo.streetAddress,
+        address_city: businessInfo.city,
+        address_state: businessInfo.state,
+        address_zip: businessInfo.postalCode,
+        latitude: businessInfo.latitude,
+        longitude: businessInfo.longitude,
+        phone: businessInfo.phone,
+        website: businessInfo.website,
+        instagram: null,
+        facebook: null,
+        is_active: true,
+        hours: dedupedHours.map(h => ({
+          day_of_week: h.dayOfWeek,
+          open_time: h.isClosed ? null : formatTimeHHMMSS(h.openTime),
+          close_time: h.isClosed ? null : formatTimeHHMMSS(h.closeTime),
+          is_closed: h.isClosed,
+        })),
+        tag_ids: businessInfo.tags
+          .map(t => (t.id !== undefined ? String(t.id) : t.name))
+          .filter(Boolean),
+      }
+
+      const res = await fetch(BARS_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      if (!res.ok) {
+        let errBody: unknown = null
+        try {
+          errBody = await res.json()
+        } catch {
+          // ignore
+        }
+
+        let message = `Server returned ${res.status} ${res.statusText}`
+        if (errBody && typeof errBody === 'object') {
+          const obj = errBody as Record<string, unknown>
+          if (typeof obj.error === 'string') message = obj.error
+          if (obj.validationErrors && typeof obj.validationErrors === 'object') {
+            setValidationErrors((prev) => ({ ...prev, ...(obj.validationErrors as ValidationErrors) }))
+          }
+        }
+
+        setServerError(message)
+        return
+      }
+
+      // Success
+      alert("Business added successfully")
+    } catch (err: unknown) {
+      setServerError(getErrorMessage(err))
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -680,9 +776,10 @@ export default function Component() {
                   <select
                     id="bar-type"
                     onChange={(e) => {
-                      if (e.target.value) {
-                        const tag = availableTags.find(t => t.name === e.target.value && t.category === 'type')
-                        if (tag && !businessInfo.tags.some(t => t.name === tag.name && t.category === tag.category)) {
+                      const val = e.target.value
+                      if (val) {
+                        const tag = availableTags.find(t => String(t.id) === val && t.category === 'type')
+                        if (tag && !businessInfo.tags.some(t => t.id !== undefined && String(t.id) === String(tag.id))) {
                           handleTagAdd(tag)
                         }
                         e.target.value = ""
@@ -692,7 +789,7 @@ export default function Component() {
                   >
                     <option value="">Select bar type...</option>
                     {availableTags.filter(tag => tag.category === 'type').map((tag) => (
-                      <option key={tag.name} value={tag.name}>
+                      <option key={String(tag.id) || tag.name} value={String(tag.id)}>
                         {tag.name}
                       </option>
                     ))}
@@ -705,9 +802,10 @@ export default function Component() {
                   <select
                     id="amenities"
                     onChange={(e) => {
-                      if (e.target.value) {
-                        const tag = availableTags.find(t => t.name === e.target.value && t.category === 'amenity')
-                        if (tag && !businessInfo.tags.some(t => t.name === tag.name && t.category === tag.category)) {
+                      const val = e.target.value
+                      if (val) {
+                        const tag = availableTags.find(t => String(t.id) === val && t.category === 'amenity')
+                        if (tag && !businessInfo.tags.some(t => t.id !== undefined && String(t.id) === String(tag.id))) {
                           handleTagAdd(tag)
                         }
                         e.target.value = ""
@@ -717,7 +815,7 @@ export default function Component() {
                   >
                     <option value="">Select amenity...</option>
                     {availableTags.filter(tag => tag.category === 'amenity').map((tag) => (
-                      <option key={tag.name} value={tag.name}>
+                      <option key={String(tag.id) || tag.name} value={String(tag.id)}>
                         {tag.name}
                       </option>
                     ))}
@@ -815,12 +913,16 @@ export default function Component() {
 
           {/* Submit Button */}
           <div className="flex justify-end">
+            {serverError && (
+              <div className="mr-4 text-sm text-red-600">Error: {serverError}</div>
+            )}
             <Button 
               type="submit" 
               size="lg" 
               className="px-8 bg-accent hover:bg-accent/90 text-white"
+              disabled={isSubmitting}
             >
-              Add Business
+              {isSubmitting ? 'Submitting...' : 'Add Business'}
             </Button>
           </div>
         </form>

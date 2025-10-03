@@ -4,8 +4,12 @@ import { NextResponse } from "next/server"
 // It reads the external tags URL from process.env.NEXT_PUBLIC_TAGS_ENDPOINT (trimmed)
 // and forwards the response to the client as JSON.
 export async function GET() {
-  const rawEndpoint = process.env.NEXT_PUBLIC_TAGS_ENDPOINT ?? "http://localhost:5000/tags"
-  const tagsEndpoint = typeof rawEndpoint === "string" ? rawEndpoint.trim() : rawEndpoint
+  const rawEndpoint = process.env.NEXT_PUBLIC_TAGS_ENDPOINT
+  const tagsEndpoint = typeof rawEndpoint === "string" ? rawEndpoint.trim() : undefined
+
+  if (!tagsEndpoint) {
+    return NextResponse.json({ error: "Tags endpoint is not configured." }, { status: 500 })
+  }
 
   try {
     const res = await fetch(tagsEndpoint, { method: "GET" })
