@@ -3,14 +3,15 @@
 import type React from "react"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import Link from "next/link"
 
 export function SignInForm() {
+  const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -23,6 +24,12 @@ export function SignInForm() {
     password?: string
     general?: string
   }>({})
+
+  const validatePassword = (password: string): boolean => {
+    // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
+    return passwordRegex.test(password)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -40,8 +47,8 @@ export function SignInForm() {
 
     if (!formData.password) {
       newErrors.password = "Password is required"
-    } else if (formData.password.length < 6) {
-      newErrors.password = "Password must be at least 6 characters"
+    } else if (!validatePassword(formData.password)) {
+      newErrors.password = "Password must be at least 8 characters and include uppercase, lowercase, number, and special character"
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -50,18 +57,29 @@ export function SignInForm() {
       return
     }
 
-    // Simulate API call
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      })
 
-      // Simulate successful login
-      console.log("Sign in successful:", formData)
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Sign in failed')
+      }
 
-      // In a real app, you would handle the authentication here
-      // For now, we'll just show a success message
-      alert("Sign in successful! (This is a demo)")
+      // Successful login - navigate to dashboard
+      router.push('/dashboard')
     } catch (error) {
-      setErrors({ general: "Sign in failed. Please try again." })
+      setErrors({ 
+        general: error instanceof Error ? error.message : "Sign in failed. Please try again." 
+      })
     } finally {
       setIsLoading(false)
     }
@@ -132,18 +150,6 @@ export function SignInForm() {
       </div>
 
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Checkbox
-            id="remember"
-            checked={formData.rememberMe}
-            onCheckedChange={(checked) => handleInputChange("rememberMe", checked as boolean)}
-            className="border-[var(--light-gray)] data-[state=checked]:bg-[var(--vibrant-teal)] data-[state=checked]:border-[var(--vibrant-teal)]"
-            disabled={isLoading}
-          />
-          <Label htmlFor="remember" className="text-sm text-[var(--charcoal-gray)] cursor-pointer">
-            Remember me
-          </Label>
-        </div>
         <Link href="/forgot-password" className="text-sm text-[var(--vibrant-teal)] hover:text-[var(--vibrant-teal)]/80 transition-colors">
           Forgot password?
         </Link>

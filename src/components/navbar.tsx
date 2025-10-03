@@ -55,9 +55,6 @@ export function Navbar() {
               <Link href="/business-login" className="hidden md:block">
                 <Button className="bg-[var(--vibrant-teal)] hover:bg-[var(--vibrant-teal)]/90 text-white">Business Login</Button>
               </Link>
-              <Link href="/business-signup" className="hidden md:block">
-                <Button variant="outline" className="border-[var(--vibrant-teal)] text-[var(--vibrant-teal)] hover:bg-[var(--vibrant-teal)]/10">Business Signup</Button>
-              </Link>
               {/* Mobile Menu Button */}
               <button 
                 ref={buttonRef}
@@ -110,16 +107,6 @@ export function Navbar() {
                   <div className="w-64 mx-auto">
                     <Button className="w-full bg-[var(--vibrant-teal)] hover:bg-[var(--vibrant-teal)]/90 text-white">
                       Business Login
-                    </Button>
-                  </div>
-                </Link>
-                <Link
-                  href="/business-signup"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <div className="w-64 mx-auto">
-                    <Button variant="outline" className="w-full border-[var(--vibrant-teal)] text-[var(--vibrant-teal)] hover:bg-[var(--vibrant-teal)]/10">
-                      Business Signup
                     </Button>
                   </div>
                 </Link>

@@ -83,11 +83,6 @@ export default function TheBusiness() {
                   </li>
                 </ul>
               </div>
-              <div>
-                <Link href="\business-signup">
-                  <Button className="bg-[var(--vibrant-teal)] hover:bg-[var(--vibrant-teal)]/90 text-white">Sign Up Your Business!</Button>
-                </Link>
-              </div>
             </div>
           </div>
         </div>
