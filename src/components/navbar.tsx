@@ -53,7 +53,7 @@ export function Navbar() {
             <div className="flex items-center gap-4">
               {/* Desktop Business Login Button */}
               <Link href="/business-login" className="hidden md:block">
-                <Button className="bg-[var(--vibrant-teal)] hover:bg-[var(--vibrant-teal)]/90 text-white">Business Login</Button>
+                <Button className="bg-[var(--vibrant-teal)] hover:bg-[var(--vibrant-teal)]/90 text-white">Login</Button>
               </Link>
               {/* Mobile Menu Button */}
               <button 
