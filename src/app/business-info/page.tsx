@@ -12,7 +12,7 @@ import { MapPin, Building, Clock, Tag, X } from "lucide-react"
 
 declare global {
   interface Window {
-    google: any
+    google: unknown
     initMap: () => void
   }
 }
@@ -76,6 +76,16 @@ const validatePostalCode = (postalCode: string): boolean => {
   // US ZIP code format (5 digits or ZIP+4)
   const usZipRegex = /^\d{5}(?:[-\s]\d{4})?$/
   return usZipRegex.test(postalCode)
+}
+
+// Helper to safely extract an error message from unknown values
+const getErrorMessage = (err: unknown): string => {
+  if (err instanceof Error) return err.message
+  try {
+    return String(err)
+  } catch {
+    return "Unknown error"
+  }
 }
 
 
@@ -143,35 +153,6 @@ const DAYS_OF_WEEK: DayInfo[] = [
   { id: 6, name: "Saturday", shortName: "Sat" }
 ]
 
-const AVAILABLE_TAGS: Tag[] = [
-  // Bar Types
-  { name: 'Sports Bar', category: 'type' },
-  { name: 'Dive Bar', category: 'type' },
-  { name: 'College Bar', category: 'type' },
-  { name: 'Cocktail Bar', category: 'type' },
-  { name: 'Brewery', category: 'type' },
-  { name: 'Wine Bar', category: 'type' },
-  { name: 'Pub', category: 'type' },
-  { name: 'Lounge', category: 'type' },
-  { name: 'Rooftop', category: 'type' },
-  { name: 'Night Club', category: 'type' },
-  { name: 'Hotel Bar', category: 'type' },
-  { name: 'Gay Bar', category: 'type' },
-  { name: 'Arcade Bar', category: 'type' },
-  { name: 'Resturant', category: 'type' },
-  
-  // Amenities
-  { name: 'Pool Table', category: 'amenity' },
-  { name: 'Darts', category: 'amenity' },
-  { name: 'Pool Tables', category: 'amenity' },
-  { name: 'Outdoor Seating', category: 'amenity' },
-  { name: 'Food Served', category: 'amenity' },
-  { name: 'Touch Tunes', category: 'amenity' },
-  { name: 'Cash Only', category: 'amenity' },
-  { name: 'Board Games', category: 'amenity' },
-  { name: 'Waterfront', category: 'amenity' }
-]
-
 
 export default function Component() {
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>({
@@ -198,9 +179,60 @@ export default function Component() {
 
 
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
-  const [isGoogleLoaded, setIsGoogleLoaded] = useState(false)
+  // removed isGoogleLoaded (unused) and use a safer unknown type for autocomplete instance
   const autocompleteRef = useRef<HTMLInputElement>(null)
-  const autocompleteInstance = useRef<any>(null)
+  // Minimal typing for the Google Autocomplete instance we use
+  type AutocompleteInstance = {
+    addListener: (eventName: string, handler: () => void) => void
+    getPlace: () => unknown
+  }
+  const autocompleteInstance = useRef<AutocompleteInstance | null>(null)
+
+  // Tags fetched from backend (no local fallback)
+  const [availableTags, setAvailableTags] = useState<Tag[]>([])
+  const [tagsLoading, setTagsLoading] = useState<boolean>(false)
+  const [tagsError, setTagsError] = useState<string | null>(null)
+  // Use the server-side proxy to avoid browser CORS issues
+  const TAGS_ENDPOINT = "/api/tags"
+
+  useEffect(() => {
+    let mounted = true
+    const fetchTags = async () => {
+      setTagsLoading(true)
+      setTagsError(null)
+      try {
+        const res = await fetch(TAGS_ENDPOINT)
+        if (!res.ok) {
+          throw new Error(`Failed to fetch tags: ${res.status} ${res.statusText}`)
+        }
+        const data = await res.json()
+
+        // Normalize response: accept an array or an object with `tags` or `data` fields
+        let tags: Tag[] = []
+        if (Array.isArray(data)) {
+          tags = data
+        } else if (Array.isArray(data.tags)) {
+          tags = data.tags
+        } else if (Array.isArray(data.data)) {
+          tags = data.data
+        }
+
+        if (mounted && tags.length > 0) {
+          setAvailableTags(tags)
+        }
+      } catch (err: unknown) {
+        const message = getErrorMessage(err)
+        console.error("Error fetching tags:", message)
+        if (mounted) setTagsError(message)
+      } finally {
+        if (mounted) setTagsLoading(false)
+      }
+    }
+
+    fetchTags()
+
+    return () => { mounted = false }
+  }, [])
 
   useEffect(() => {
     // Load Google Places API
@@ -221,7 +253,6 @@ export default function Component() {
       script.async = true
       script.defer = true
       script.onload = () => {
-        setIsGoogleLoaded(true)
         initializeAutocomplete()
       }
       document.head.appendChild(script)
@@ -229,12 +260,27 @@ export default function Component() {
 
     const initializeAutocomplete = () => {
       if (autocompleteRef.current && window.google) {
-        autocompleteInstance.current = new window.google.maps.places.Autocomplete(autocompleteRef.current, {
-          types: ["establishment"],
-          fields: ["name", "formatted_address", "address_components", "formatted_phone_number", "website", "geometry"],
-        })
+        // Access `window.google.maps.places.Autocomplete` via a narrowed window type to avoid `any`
+        const win = window as unknown as {
+          google?: {
+            maps?: {
+              places?: {
+                Autocomplete?: new (input: HTMLInputElement | null, opts: unknown) => AutocompleteInstance
+              }
+            }
+          }
+        }
 
-        autocompleteInstance.current.addListener("place_changed", handlePlaceSelect)
+        const AutocompleteCtor = win.google?.maps?.places?.Autocomplete
+        if (AutocompleteCtor && autocompleteRef.current) {
+          autocompleteInstance.current = new AutocompleteCtor(autocompleteRef.current, {
+            types: ["establishment"],
+            fields: ["name", "formatted_address", "address_components", "formatted_phone_number", "website", "geometry"],
+          })
+
+          // addListener exists on the Autocomplete instance
+          autocompleteInstance.current.addListener("place_changed", handlePlaceSelect)
+        }
       }
     }
 
@@ -248,10 +294,24 @@ export default function Component() {
   }, [])
 
   const handlePlaceSelect = () => {
-    const place = autocompleteInstance.current.getPlace()
+    if (!autocompleteInstance.current) return
 
-    if (place && place.address_components) {
-      const addressComponents = place.address_components
+    const place = autocompleteInstance.current.getPlace() as unknown
+
+    // Define the minimal shape we expect from Google Places for our use
+    type PlaceShape = {
+      address_components?: Array<{ types: string[]; long_name?: string; short_name?: string }>
+      geometry?: { location?: { lat: () => number; lng: () => number } }
+      name?: string
+      formatted_phone_number?: string
+      website?: string
+      formatted_address?: string
+    }
+
+    const placeObj = place as PlaceShape | null
+
+    if (placeObj && placeObj.address_components) {
+      const addressComponents = placeObj.address_components
 
       let streetNumber = ""
       let route = ""
@@ -259,22 +319,22 @@ export default function Component() {
       let state = ""
       let postalCode = ""
 
-      addressComponents.forEach((component: any) => {
+      addressComponents.forEach((component: { types: string[]; long_name?: string; short_name?: string }) => {
         const types = component.types
 
-        if (types.includes("street_number")) {
+        if (types.includes("street_number") && component.long_name) {
           streetNumber = component.long_name
         }
-        if (types.includes("route")) {
+        if (types.includes("route") && component.long_name) {
           route = component.long_name
         }
-        if (types.includes("locality")) {
+        if (types.includes("locality") && component.long_name) {
           city = component.long_name
         }
-        if (types.includes("administrative_area_level_1")) {
+        if (types.includes("administrative_area_level_1") && component.short_name) {
           state = component.short_name
         }
-        if (types.includes("postal_code")) {
+        if (types.includes("postal_code") && component.long_name) {
           postalCode = component.long_name
         }
       })
@@ -282,19 +342,21 @@ export default function Component() {
       // Extract latitude and longitude from geometry
       let latitude = null
       let longitude = null
-      if (place.geometry && place.geometry.location) {
-        latitude = place.geometry.location.lat()
-        longitude = place.geometry.location.lng()
+      if (placeObj.geometry && placeObj.geometry.location && typeof placeObj.geometry.location.lat === "function") {
+        latitude = placeObj.geometry.location.lat()
+      }
+      if (placeObj.geometry && placeObj.geometry.location && typeof placeObj.geometry.location.lng === "function") {
+        longitude = placeObj.geometry.location.lng()
       }
 
       setBusinessInfo({
-        name: place.name || "",
+        name: placeObj.name || "",
         streetAddress: `${streetNumber} ${route}`.trim(),
         city: city,
         state: state,
         postalCode: postalCode,
-        phone: place.formatted_phone_number || "",
-        website: place.website || "",
+        phone: placeObj.formatted_phone_number || "",
+        website: placeObj.website || "",
         latitude: latitude,
         longitude: longitude,
         tags: [],
@@ -379,7 +441,7 @@ export default function Component() {
     }
 
     // Bar Hours Validation
-    barHours.forEach((hours, index) => {
+    barHours.forEach((hours) => {
       if (!hours.isClosed) {
         if (!hours.openTime) {
           errors.barHours![`${hours.dayOfWeek}_openTime`] = "Open time is required"
@@ -576,7 +638,7 @@ export default function Component() {
                 Bar Tags
               </CardTitle>
               <CardDescription className="text-foreground/80 text-[var(--charcoal-gray)]">
-                Select tags that describe your bar's type and amenities.
+                Select tags that describe your bar&apos;s type and amenities.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -605,6 +667,12 @@ export default function Component() {
               )}
 
               {/* Tag Selection Dropdowns */}
+              {tagsLoading && (
+                <p className="text-sm text-foreground/70">Loading tags...</p>
+              )}
+              {tagsError && (
+                <p className="text-sm text-red-600">Error loading tags: {tagsError}.</p>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Bar Type */}
                 <div className="space-y-2">
@@ -613,7 +681,7 @@ export default function Component() {
                     id="bar-type"
                     onChange={(e) => {
                       if (e.target.value) {
-                        const tag = AVAILABLE_TAGS.find(t => t.name === e.target.value && t.category === 'type')
+                        const tag = availableTags.find(t => t.name === e.target.value && t.category === 'type')
                         if (tag && !businessInfo.tags.some(t => t.name === tag.name && t.category === tag.category)) {
                           handleTagAdd(tag)
                         }
@@ -623,7 +691,7 @@ export default function Component() {
                     className="w-full h-10 px-3 py-2 bg-background border border-border-light rounded-md text-foreground text-[var(--dark-sapphire)] focus:outline-none focus:ring-2 focus:ring-accent"
                   >
                     <option value="">Select bar type...</option>
-                    {AVAILABLE_TAGS.filter(tag => tag.category === 'type').map((tag) => (
+                    {availableTags.filter(tag => tag.category === 'type').map((tag) => (
                       <option key={tag.name} value={tag.name}>
                         {tag.name}
                       </option>
@@ -638,7 +706,7 @@ export default function Component() {
                     id="amenities"
                     onChange={(e) => {
                       if (e.target.value) {
-                        const tag = AVAILABLE_TAGS.find(t => t.name === e.target.value && t.category === 'amenity')
+                        const tag = availableTags.find(t => t.name === e.target.value && t.category === 'amenity')
                         if (tag && !businessInfo.tags.some(t => t.name === tag.name && t.category === tag.category)) {
                           handleTagAdd(tag)
                         }
@@ -648,7 +716,7 @@ export default function Component() {
                     className="w-full h-10 px-3 py-2 bg-background border border-border-light rounded-md text-foreground text-[var(--dark-sapphire)] focus:outline-none focus:ring-2 focus:ring-accent"
                   >
                     <option value="">Select amenity...</option>
-                    {AVAILABLE_TAGS.filter(tag => tag.category === 'amenity').map((tag) => (
+                    {availableTags.filter(tag => tag.category === 'amenity').map((tag) => (
                       <option key={tag.name} value={tag.name}>
                         {tag.name}
                       </option>
