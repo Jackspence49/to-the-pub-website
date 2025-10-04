@@ -4,11 +4,9 @@ import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
-import { MapPin, Building, Clock, Tag, X } from "lucide-react"
+import BusinessInfoCard from "@/components/BusinessInfoCard"
+import TagsCard from "@/components/TagsCard"
+import BarHoursCard from "@/components/BarHoursCard"
 
 declare global {
   interface Window {
@@ -582,334 +580,29 @@ export default function Component() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Business Information Section */}
-          <Card className="border-border-light bg-white">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-foreground text-[var(--dark-sapphire)]">
-                <Building className="h-5 w-5 text-accent" />
-                Business Information
-              </CardTitle>
-              <CardDescription className="text-foreground/80 tex text-[var(--charcoal-gray)]">
-                Search for your business to auto-populate information, then review and edit as needed.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="business-search" className="text-foreground text-[var(--dark-sapphire)]">Search for your business</Label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 h-4 w-4 text-accent" />
-                  <Input
-                    ref={autocompleteRef}
-                    id="business-search"
-                    placeholder="Start typing your business name or address..."
-                    className="pl-10 bg-background border-border-light text-foreground text-[var(--dark-sapphire)]"
-                  />
-                </div>
-                <p className="text-sm text-foreground/60 text-[var(--dark-sapphire)]">
-                  Start typing to search for your business and auto-fill the information below.
-                </p>
-              </div>
+          <BusinessInfoCard
+            businessInfo={businessInfo}
+            validationErrors={validationErrors}
+            onChange={handleBusinessInfoChange}
+            autocompleteRef={autocompleteRef}
+            US_STATES={US_STATES}
+          />
 
-              <Separator className="bg-border-light" />
+          <TagsCard
+            selectedTags={businessInfo.tags}
+            availableTags={availableTags}
+            tagsLoading={tagsLoading}
+            tagsError={tagsError}
+            onAdd={handleTagAdd}
+            onRemove={handleTagRemove}
+          />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="business-name" className="text-foreground text-[var(--dark-sapphire)]">Business Name *</Label>
-                  <Input
-                    id="business-name"
-                    value={businessInfo.name}
-                    onChange={(e) => handleBusinessInfoChange("name", e.target.value)}
-                    placeholder="Enter business name"
-                    required
-                    className={`bg-background border-border-light text-foreground text-[var(--dark-sapphire)] ${
-                      validationErrors.business?.name ? "border-red-500" : ""
-                    }`}
-                  />
-                  {validationErrors.business?.name && (
-                    <p className="text-sm text-red-600">{validationErrors.business.name}</p>
-                  )}
-                </div>
-
-                <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="street-address" className="text-foreground text-[var(--dark-sapphire)]">Street Address *</Label>
-                  <Input
-                    id="street-address"
-                    value={businessInfo.streetAddress}
-                    onChange={(e) => handleBusinessInfoChange("streetAddress", e.target.value)}
-                    placeholder="Enter street address"
-                    required
-                    className="bg-background border-border-light text-foreground text-[var(--dark-sapphire)]"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="city" className="text-foreground text-[var(--dark-sapphire)]">City *</Label>
-                  <Input
-                    id="city"
-                    value={businessInfo.city}
-                    onChange={(e) => handleBusinessInfoChange("city", e.target.value)}
-                    placeholder="Enter city"
-                    required
-                    className="bg-background border-border-light text-foreground text-[var(--dark-sapphire)]"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="state" className="text-foreground text-[var(--dark-sapphire)]">State/Province *</Label>
-                  <select
-                    id="state"
-                    value={businessInfo.state}
-                    onChange={(e) => handleBusinessInfoChange("state", e.target.value)}
-                    required
-                    className="w-full h-10 px-3 py-2 bg-background border border-border-light rounded-md text-foreground text-[var(--dark-sapphire)] focus:outline-none focus:ring-2 focus:ring-accent"
-                  >
-                    <option value="">Select a state</option>
-                    {US_STATES.map((state) => (
-                      <option key={state.value} value={state.value}>
-                        {state.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="postal-code" className="text-foreground text-[var(--dark-sapphire)]">Postal Code *</Label>
-                  <Input
-                    id="postal-code"
-                    value={businessInfo.postalCode}
-                    onChange={(e) => handleBusinessInfoChange("postalCode", e.target.value)}
-                    placeholder="Enter a 5-digit Zip Code or Zip+4 (e.g., 12345 or 12345-6789)"
-                    required
-                    className={`bg-background border-border-light text-foreground text-[var(--dark-sapphire)] ${
-                      validationErrors.business?.postalCode ? "border-red-500" : ""
-                    }`}
-                  />
-                  {validationErrors.business?.postalCode && (
-                    <p className="text-sm text-red-600">{validationErrors.business.postalCode}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-foreground text-[var(--dark-sapphire)]">Phone Number</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={businessInfo.phone}
-                    onChange={(e) => handleBusinessInfoChange("phone", e.target.value)}
-                    placeholder="Enter phone number (e.g., 123-456-7890)"
-                    className={`bg-background border-border-light text-foreground text-[var(--dark-sapphire)] ${
-                      validationErrors.business?.phone ? "border-red-500" : ""
-                    }`}
-                  />
-                  {validationErrors.business?.phone && (
-                    <p className="text-sm text-red-600">{validationErrors.business.phone}</p>
-                  )}
-                </div>
-
-                <div className="md:col-span-2 space-y-2">
-                  <Label htmlFor="website" className="text-foreground text-[var(--dark-sapphire)]">Website</Label>
-                  <Input
-                    id="website"
-                    type="text"
-                    value={businessInfo.website}
-                    onChange={(e) => handleBusinessInfoChange("website", e.target.value)}
-                    placeholder="https://www.example.com"
-                    className={`bg-background border-border-light text-foreground text-[var(--dark-sapphire)] ${
-                      validationErrors.business?.website ? "border-red-500" : ""
-                    }`}
-                  />
-                  {validationErrors.business?.website && (
-                    <p className="text-sm text-red-600">{validationErrors.business.website}</p>
-                  )}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Tags Section */}
-          <Card className="border-border-light bg-white">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-foreground text-[var(--dark-sapphire)]">
-                <Tag className="h-5 w-5 text-accent" />
-                Bar Tags
-              </CardTitle>
-              <CardDescription className="text-foreground/80 text-[var(--charcoal-gray)]">
-                Select tags that describe your bar&apos;s type and amenities.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Selected Tags Display */}
-              {businessInfo.tags.length > 0 && (
-                <div className="space-y-2">
-                  <Label className="text-foreground text-[var(--dark-sapphire)] font-medium">Selected Tags</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {businessInfo.tags.map((tag, index) => (
-                      <div
-                        key={`${tag.name}-${tag.category}-${index}`}
-                        className="inline-flex items-center gap-1 px-3 py-1 bg-accent/10 text-accent rounded-full text-sm"
-                      >
-                        <span>{tag.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleTagRemove(tag)}
-                          className="hover:bg-accent/20 rounded-full p-0.5"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Tag Selection Dropdowns */}
-              {tagsLoading && (
-                <p className="text-sm text-foreground/70">Loading tags...</p>
-              )}
-              {tagsError && (
-                <p className="text-sm text-red-600">Error loading tags: {tagsError}.</p>
-              )}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Bar Type */}
-                <div className="space-y-2">
-                  <Label htmlFor="bar-type" className="text-foreground text-[var(--dark-sapphire)]">Bar Type</Label>
-                  <select
-                    id="bar-type"
-                    onChange={(e) => {
-                      const val = e.target.value
-                      if (val) {
-                        const tag = availableTags.find(t => String(t.id) === val && t.category === 'type')
-                        if (tag && !businessInfo.tags.some(t => t.id !== undefined && String(t.id) === String(tag.id))) {
-                          handleTagAdd(tag)
-                        }
-                        e.target.value = ""
-                      }
-                    }}
-                    className="w-full h-10 px-3 py-2 bg-background border border-border-light rounded-md text-foreground text-[var(--dark-sapphire)] focus:outline-none focus:ring-2 focus:ring-accent"
-                  >
-                    <option value="">Select bar type...</option>
-                    {availableTags.filter(tag => tag.category === 'type').map((tag) => (
-                      <option key={String(tag.id) || tag.name} value={String(tag.id)}>
-                        {tag.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Amenities */}
-                <div className="space-y-2">
-                  <Label htmlFor="amenities" className="text-foreground text-[var(--dark-sapphire)]">Amenities</Label>
-                  <select
-                    id="amenities"
-                    onChange={(e) => {
-                      const val = e.target.value
-                      if (val) {
-                        const tag = availableTags.find(t => String(t.id) === val && t.category === 'amenity')
-                        if (tag && !businessInfo.tags.some(t => t.id !== undefined && String(t.id) === String(tag.id))) {
-                          handleTagAdd(tag)
-                        }
-                        e.target.value = ""
-                      }
-                    }}
-                    className="w-full h-10 px-3 py-2 bg-background border border-border-light rounded-md text-foreground text-[var(--dark-sapphire)] focus:outline-none focus:ring-2 focus:ring-accent"
-                  >
-                    <option value="">Select amenity...</option>
-                    {availableTags.filter(tag => tag.category === 'amenity').map((tag) => (
-                      <option key={String(tag.id) || tag.name} value={String(tag.id)}>
-                        {tag.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Bar Hours Section */}
-          <Card className="border-border-light bg-white">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-foreground text-[var(--dark-sapphire)]">
-                <Clock className="h-5 w-5 text-accent" />
-                Bar Hours
-              </CardTitle>
-              <CardDescription className="text-foreground/80 text-[var(--charcoal-gray)]">
-                Set your business hours for each day of the week. Leave times empty if closed.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {DAYS_OF_WEEK.map((day) => {
-                const dayHours = barHours.find(hours => hours.dayOfWeek === day.id)
-                if (!dayHours) return null
-
-                return (
-                  <div key={day.id} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
-                    <div className="md:col-span-1">
-                      <Label className="text-foreground text-[var(--dark-sapphire)] font-medium">
-                        {day.name}
-                      </Label>
-                    </div>
-                    
-                    <div className="md:col-span-1">
-                      <Label htmlFor={`closed-${day.id}`} className="flex items-center gap-2 text-foreground text-[var(--dark-sapphire)]">
-                        <input
-                          type="checkbox"
-                          id={`closed-${day.id}`}
-                          checked={dayHours.isClosed}
-                          onChange={(e) => handleBarHoursChange(day.id, "isClosed", e.target.checked)}
-                          className="rounded border-border-light"
-                        />
-                        Closed
-                      </Label>
-                    </div>
-
-                    <div className="md:col-span-1">
-                      <Label htmlFor={`open-${day.id}`} className="text-foreground text-[var(--dark-sapphire)]">
-                        Open Time
-                      </Label>
-                      <Input
-                        id={`open-${day.id}`}
-                        type="time"
-                        value={dayHours.openTime}
-                        onChange={(e) => handleBarHoursChange(day.id, "openTime", e.target.value)}
-                        disabled={dayHours.isClosed}
-                        className={`bg-background border-border-light text-foreground text-[var(--dark-sapphire)] ${
-                          validationErrors.barHours?.[`${day.id}_openTime`] || validationErrors.barHours?.[`${day.id}_times`] ? "border-red-500" : ""
-                        }`}
-                      />
-                      {validationErrors.barHours?.[`${day.id}_openTime`] && (
-                        <p className="text-sm text-red-600">{validationErrors.barHours[`${day.id}_openTime`]}</p>
-                      )}
-                    </div>
-
-                    <div className="md:col-span-1">
-                      <Label htmlFor={`close-${day.id}`} className="text-foreground text-[var(--dark-sapphire)]">
-                        Close Time
-                      </Label>
-                      <Input
-                        id={`close-${day.id}`}
-                        type="time"
-                        value={dayHours.closeTime}
-                        onChange={(e) => handleBarHoursChange(day.id, "closeTime", e.target.value)}
-                        disabled={dayHours.isClosed}
-                        className={`bg-background border-border-light text-foreground text-[var(--dark-sapphire)] ${
-                          validationErrors.barHours?.[`${day.id}_closeTime`] || validationErrors.barHours?.[`${day.id}_times`] ? "border-red-500" : ""
-                        }`}
-                      />
-                      {validationErrors.barHours?.[`${day.id}_closeTime`] && (
-                        <p className="text-sm text-red-600">{validationErrors.barHours[`${day.id}_closeTime`]}</p>
-                      )}
-                    </div>
-
-                    <div className="md:col-span-1">
-                      {validationErrors.barHours?.[`${day.id}_times`] && (
-                        <p className="text-sm text-red-600">{validationErrors.barHours[`${day.id}_times`]}</p>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </CardContent>
-          </Card>
+          <BarHoursCard
+            days={DAYS_OF_WEEK}
+            barHours={barHours}
+            onChange={handleBarHoursChange}
+            validationErrors={validationErrors.barHours}
+          />
 
           {/* Submit Button */}
           <div className="flex justify-end">
