@@ -1,7 +1,8 @@
 "use client"
 
 import React, { useState } from "react"
-import { User, Eye, EyeOff } from "lucide-react"
+import { User, Eye, EyeOff, Loader2 } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -55,6 +56,9 @@ export default function Component() {
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [serverError, setServerError] = useState<string | null>(null)
+  const router = useRouter()
 
 
   const handleAdminInfoChange = (field: keyof AdminInfo, value: string) => {
@@ -100,17 +104,52 @@ export default function Component() {
     return isValid
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setServerError(null)
 
     if (!validateForm()) {
       return
     }
 
-    console.log("Admin Info:", adminInfo)
+    setIsLoading(true)
 
-    // Here you would typically send the data to your backend
-    alert("Form submitted successfully!")
+    try {
+      const full_name = `${adminInfo.firstName.trim()} ${adminInfo.lastName.trim()}`.trim()
+
+      // Use internal server-side proxy to avoid exposing upstream URL to the browser
+      const resp = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: adminInfo.email,
+          password: adminInfo.password,
+          full_name,
+        }),
+      })
+
+      if (!resp.ok) {
+        // try to parse error message from server
+        let errMsg = `Request failed with status ${resp.status}`
+        try {
+          const json = await resp.json()
+          if (json?.message) errMsg = json.message
+          else if (typeof json === 'string') errMsg = json
+        } catch {
+          // ignore json parse errors, keep default message
+        }
+        throw new Error(errMsg)
+      }
+
+      // Success - navigate to business-login (or another page)
+      router.push('/business-login')
+    } catch (err) {
+      setServerError(err instanceof Error ? err.message : 'Signup failed')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -122,6 +161,9 @@ export default function Component() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {serverError && (
+            <div className="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">{serverError}</div>
+          )}
 
 
 
@@ -257,12 +299,20 @@ export default function Component() {
 
           {/* Submit Button */}
           <div className="flex justify-end">
-            <Button 
-              type="submit" 
-              size="lg" 
+            <Button
+              type="submit"
+              size="lg"
               className="px-8 bg-accent hover:bg-accent/90 text-white"
+              disabled={isLoading}
             >
-              Create Account
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create Account"
+              )}
             </Button>
           </div>
         </form>
