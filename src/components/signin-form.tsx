@@ -58,7 +58,8 @@ export function SignInForm() {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/login`, {
+      // Use internal server-side proxy to avoid exposing upstream URL to the browser
+      const response = await fetch('/api/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
