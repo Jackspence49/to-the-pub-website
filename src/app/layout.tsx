@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Navbar } from "@/components/layouts/navbar"
+import { ConditionalNavbar } from "@/components/layouts/ConditionalNavbar"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,7 +28,7 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <div className="app-container">
           <div className="nav-container">
-            <Navbar />
+            <ConditionalNavbar />
           </div>
           <main className="main-content">
             {children}

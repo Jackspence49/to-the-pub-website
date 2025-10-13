@@ -1,4 +1,3 @@
-import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { SignInForm } from "../../components/cards/signin-form"
 
@@ -26,16 +25,6 @@ export default function SignInPage() {
               <SignInForm />
             </CardContent>
           </Card>
-
-          {/* Additional Links */}
-          <div className="text-center space-y-4">
-            <p className="text-gray-300 text-sm">
-              Don&apos;t have an account? {" "}
-              <Link href="/business-signup" className="text-[var(--vibrant-teal)] hover:text-[var(--vibrant-teal)]/80 font-medium transition-colors">
-                Sign up here
-              </Link>
-            </p>
-          </div>
         </div>
       </main>
     </div>
