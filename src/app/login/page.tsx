@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { SignInForm } from "../../components/signin-form"
+import { SignInForm } from "../../components/cards/signin-form"
 
 export default function SignInPage() {
   return (

@@ -1,8 +1,7 @@
 "use client";
 
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 import Link from "next/link";
-import "../app/globals.css";
 import { useState, useEffect, useRef } from "react";
 import { Menu, X } from "lucide-react";
 
@@ -52,7 +51,7 @@ export function Navbar() {
             </nav>
             <div className="flex items-center gap-4">
               {/* Desktop Business Login Button */}
-              <Link href="/business-login" className="hidden md:block">
+              <Link href="/login" className="hidden md:block">
                 <Button className="bg-[var(--vibrant-teal)] hover:bg-[var(--vibrant-teal)]/90 text-white">Login</Button>
               </Link>
               {/* Mobile Menu Button */}

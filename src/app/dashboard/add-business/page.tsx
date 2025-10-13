@@ -4,9 +4,9 @@ import type React from "react"
 
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
-import BusinessInfoCard from "@/components/BusinessInfoCard"
-import TagsCard from "@/components/TagsCard"
-import BarHoursCard from "@/components/BarHoursCard"
+import BusinessInfoCard from "@/components/cards/BusinessInfoCard"
+import TagsCard from "@/components/cards/TagsCard"
+import BarHoursCard from "@/components/cards/BarHoursCard"
 
 declare global {
   interface Window {
