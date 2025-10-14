@@ -1,19 +1,13 @@
-import type { Metadata } from "next";
-
-export const metadata: Metadata = {
-  title: "Dashboard - To The Pub",
-  description: "Admin dashboard for managing businesses and events",
-};
+import { PrivateRoute } from "@/components/auth/PrivateRoute"
 
 export default function DashboardLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
-    <div className="dashboard-container">
-      {/* No navbar here - dashboard has its own layout */}
+    <PrivateRoute>
       {children}
-    </div>
-  );
+    </PrivateRoute>
+  )
 }

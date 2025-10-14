@@ -1,15 +1,17 @@
-'use client';
+"use client";
 
-import { usePathname } from 'next/navigation';
-import { Navbar } from './navbar';
+import { useAuth } from "@/hooks/useAuth";
+import { PublicNavbar } from "./navbar";
+import { PrivateNavbar } from "./PrivateNavbar";
 
 export function ConditionalNavbar() {
-  const pathname = usePathname();
-  
-  // Hide navbar on dashboard pages
-  if (pathname?.startsWith('/dashboard')) {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  // Show nothing while loading to prevent flash
+  if (isLoading) {
     return null;
   }
-  
-  return <Navbar />;
+
+  // Render appropriate navbar based on authentication status
+  return isAuthenticated ? <PrivateNavbar /> : <PublicNavbar />;
 }

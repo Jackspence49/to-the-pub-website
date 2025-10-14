@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
-export default function Dashboard() {
+function DashboardContent() {
   const dashboardActions = [
     {
       label: "Create New Business",
@@ -42,29 +42,11 @@ export default function Dashboard() {
       label: "Edit Event",
       href: "/dashboard/edit-event",
       description: "Edit existing events"
-    },
-    {
-      label: "Log Out",
-      href: "/login",
-      description: "Log out of your account"
     }
   ]
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Dashboard Header */}
-      <header className="bg-card-background border-b border-border-color px-6 py-4">
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Admin Dashboard</h1>
-            <p className="text-foreground/70">To The Pub Management</p>
-          </div>
-          <Link href="/login">
-            <Button variant="outline">Log Out</Button>
-          </Link>
-        </div>
-      </header>
-      
       {/* Dashboard Content */}
       <div className="p-6">
         <div className="max-w-7xl mx-auto">
@@ -98,4 +80,8 @@ export default function Dashboard() {
       </div>
     </div>
   )
+}
+
+export default function Dashboard() {
+  return <DashboardContent />
 }

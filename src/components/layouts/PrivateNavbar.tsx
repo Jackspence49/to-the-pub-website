@@ -1,11 +1,11 @@
 "use client";
 
-import { Button } from "../ui/button";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
 import { Menu, X } from "lucide-react";
+import { UserProfile } from "../auth/UserProfile";
 
-export function PublicNavbar() {
+export function PrivateNavbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const buttonRef = useRef<HTMLButtonElement>(null);
@@ -32,30 +32,19 @@ export function PublicNavbar() {
         {/* Header */}
         <header className="sticky top-0 z-40 w-full border-b bg-white">
           <div className="flex h-16 items-center justify-between md:container px-4">
+            {/* Logo/Brand */}
             <div className="flex items-center gap-2">
-                <Link href="/">
+                <Link href="/dashboard">
                     <img src="/ToThePub-logo.png" alt="To The Pub" className="h-40 w-auto" />
                 </Link>
             </div>
-            {/* Desktop Navigation */}
-            <nav className="hidden md:flex items-center gap-6">
-              <Link href="/the-app" className="text-medium font-medium text-[var(--text-on-light)] hover:text-[var(--vibrant-teal)] transition-colors">
-                The App
-              </Link>
-              <Link href="/the-business" className="text-medium font-medium text-[var(--text-on-light)] hover:text-[var(--vibrant-teal)] transition-colors">
-                For Businesses
-              </Link>
-              <Link href="/about" className="text-medium font-medium text-[var(--text-on-light)] hover:text-[var(--vibrant-teal)] transition-colors">
-                About
-              </Link>
-            </nav>
+            
+            {/* Desktop User Profile and Actions */}
             <div className="flex items-center gap-4">
-              {/* Desktop Login */}
               <div className="hidden md:block">
-                <Link href="/login">
-                  <Button className="bg-[var(--vibrant-teal)] hover:bg-[var(--vibrant-teal)]/90 text-white">Login</Button>
-                </Link>
+                <UserProfile />
               </div>
+              
               {/* Mobile Menu Button */}
               <button 
                 ref={buttonRef}
@@ -71,6 +60,7 @@ export function PublicNavbar() {
               </button>
             </div>
           </div>
+          
           {/* Mobile Navigation Menu */}
           <div 
             ref={menuRef}
@@ -79,38 +69,10 @@ export function PublicNavbar() {
             }`}
           >
             <nav className="container py-4 space-y-4">
-              <Link
-                href="/the-app"
-                className="block text-sm font-medium text-[var(--text-on-light)] hover:text-[var(--vibrant-teal)] transition-colors text-center"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                The App
-              </Link>
-              <Link
-                href="/the-business"
-                className="block text-sm font-medium text-[var(--text-on-light)] hover:text-[var(--vibrant-teal)] transition-colors text-center"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                For Businesses
-              </Link>
-              <Link
-                href="/about"
-                className="block text-sm font-medium text-[var(--text-on-light)] hover:text-[var(--vibrant-teal)] transition-colors text-center"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                About
-              </Link>
               <div className="flex flex-col items-center space-y-3 pt-2 py-4">
-                <Link
-                  href="/login"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  <div className="w-64 mx-auto">
-                    <Button className="w-full bg-[var(--vibrant-teal)] hover:bg-[var(--vibrant-teal)]/90 text-white">
-                      Login
-                    </Button>
-                  </div>
-                </Link>
+                <div className="w-64 mx-auto">
+                  <UserProfile />
+                </div>
               </div>
             </nav>
           </div>

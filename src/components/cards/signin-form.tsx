@@ -9,9 +9,12 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { storeAuthTokens } from "@/lib/auth"
+import { useAuth } from "@/hooks/useAuth"
 
 export function SignInForm() {
   const router = useRouter()
+  const { login } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
@@ -75,6 +78,29 @@ export function SignInForm() {
         throw new Error(error.message || 'Sign in failed')
       }
 
+      const response_data = await response.json()
+      
+      // Store JWT token securely using our auth utility
+      // This handles localStorage storage with proper error handling
+      try {
+        const userData = {
+          id: response_data.data.id,
+          email: response_data.data.email,
+          name: response_data.data.full_name,
+          role: response_data.data.role
+        }
+        
+        storeAuthTokens({
+          token: response_data.token,
+          user: userData
+        })
+        
+        // Update auth context state
+        login(userData, response_data.token)
+      } catch {
+        throw new Error('Authentication successful but failed to store token')
+      }
+
       // Successful login - navigate to dashboard
       router.push('/dashboard')
     } catch (error) {
@@ -110,7 +136,7 @@ export function SignInForm() {
           placeholder="your@email.com"
           value={formData.email}
           onChange={(e) => handleInputChange("email", e.target.value)}
-          className={`w-full ${
+          className={`w-full text-[var(--charcoal-gray)] ${
             errors.email
               ? "border-red-500 focus:ring-red-500"
               : "border-[var(--light-gray)] focus:ring-[var(--vibrant-teal)] focus:border-[var(--vibrant-teal)]"
@@ -131,7 +157,7 @@ export function SignInForm() {
             placeholder="Enter your password"
             value={formData.password}
             onChange={(e) => handleInputChange("password", e.target.value)}
-            className={`w-full pr-10 ${
+            className={`w-full pr-10 text-[var(--charcoal-gray)] ${
               errors.password
                 ? "border-red-500 focus:ring-red-500"
                 : "border-[var(--light-gray)] focus:ring-[var(--vibrant-teal)] focus:border-[var(--vibrant-teal)]"

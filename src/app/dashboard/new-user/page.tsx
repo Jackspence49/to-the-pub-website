@@ -153,7 +153,7 @@ export default function Component() {
   }
 
   return (
-    <div className="min-h-screen bg-background py-8 px-4">
+      <div className="min-h-screen bg-background py-8 px-4">
       <div className="mx-auto max-w-2xl">
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-foreground">Registration</h1>
