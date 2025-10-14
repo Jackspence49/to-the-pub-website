@@ -20,12 +20,21 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json().catch(() => null)
+    
+    // Extract Authorization header from the incoming request
+    const authHeader = request.headers.get('Authorization')
+    const requestHeaders: Record<string, string> = {
+      "Content-Type": "application/json",
+    }
+    
+    // Forward the Authorization header if present (though typically not needed for login)
+    if (authHeader) {
+      requestHeaders.Authorization = authHeader
+    }
 
     const res = await fetch(loginEndpoint, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: requestHeaders,
       body: JSON.stringify(body),
     })
 

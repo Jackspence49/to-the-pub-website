@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import BusinessInfoCard from "@/components/cards/BusinessInfoCard"
 import TagsCard from "@/components/cards/TagsCard"
 import BarHoursCard from "@/components/cards/BarHoursCard"
+import { api } from "@/lib/api"
+import { toast } from 'sonner'
 
 declare global {
   interface Window {
@@ -154,7 +156,8 @@ const DAYS_OF_WEEK: DayInfo[] = [
 
 
 export default function Component() {
-  const [businessInfo, setBusinessInfo] = useState<BusinessInfo>({
+  // Initial state values
+  const initialBusinessInfo: BusinessInfo = {
     name: "",
     streetAddress: "",
     city: "",
@@ -165,16 +168,18 @@ export default function Component() {
     latitude: null,
     longitude: null,
     tags: [],
-  })
+  }
 
-  const [barHours, setBarHours] = useState<BarHours[]>(
-    DAYS_OF_WEEK.map(day => ({
-      dayOfWeek: day.id,
-      openTime: "09:00",
-      closeTime: "22:00",
-      isClosed: false
-    }))
-  )
+  const initialBarHours: BarHours[] = DAYS_OF_WEEK.map(day => ({
+    dayOfWeek: day.id,
+    openTime: "09:00",
+    closeTime: "22:00",
+    isClosed: false
+  }))
+
+  const [businessInfo, setBusinessInfo] = useState<BusinessInfo>(initialBusinessInfo)
+
+  const [barHours, setBarHours] = useState<BarHours[]>(initialBarHours)
 
 
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
@@ -203,11 +208,7 @@ export default function Component() {
       setTagsLoading(true)
       setTagsError(null)
       try {
-        const res = await fetch(TAGS_ENDPOINT)
-        if (!res.ok) {
-          throw new Error(`Failed to fetch tags: ${res.status} ${res.statusText}`)
-        }
-        const data = await res.json()
+        const data = await api.get(TAGS_ENDPOINT, { requireAuth: true }).then(res => res.json())
 
         // Normalize response: accept an array or an object with `tags` or `data` fields
         let tags: Tag[] = []
@@ -535,11 +536,7 @@ export default function Component() {
           .filter(Boolean),
       }
 
-      const res = await fetch(BARS_ENDPOINT, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
+      const res = await api.post(BARS_ENDPOINT, payload, { requireAuth: true })
 
       if (!res.ok) {
         let errBody: unknown = null
@@ -559,13 +556,40 @@ export default function Component() {
         }
 
         setServerError(message)
+        toast.error("Failed to add business", {
+          description: message,
+          duration: 5000,
+        })
         return
       }
 
       // Success
-      alert("Business added successfully")
+      toast.success("Business added successfully!", {
+        description: "Your business has been registered and is now live.",
+        duration: 4000,
+      })
+      
+      // Reset form to initial state
+      setBusinessInfo(initialBusinessInfo)
+      setBarHours(initialBarHours)
+      setValidationErrors({})
+      setServerError(null)
+      
+      // Clear the autocomplete search input
+      if (autocompleteRef.current) {
+        autocompleteRef.current.value = ''
+      }
+      
+      // Scroll to top of the page
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      
     } catch (err: unknown) {
-      setServerError(getErrorMessage(err))
+      const errorMessage = getErrorMessage(err)
+      setServerError(errorMessage)
+      toast.error("Unexpected error occurred", {
+        description: errorMessage,
+        duration: 5000,
+      })
     } finally {
       setIsSubmitting(false)
     }

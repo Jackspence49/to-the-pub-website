@@ -49,3 +49,29 @@ body {
 .border-light {
   border-color: var(--border-color);
 }
+
+/* Toast Notifications */
+.toast-notification {
+  z-index: 9999 !important;
+}
+
+/* Ensure Sonner toasts are visible */
+[data-sonner-toaster] {
+  z-index: 9999 !important;
+}
+
+[data-sonner-toast] {
+  background-color: var(--charcoal-gray) !important;
+  border: 1px solid var(--light-gray) !important;
+  color: var(--white) !important;
+}
+
+[data-sonner-toast][data-type="success"] {
+  background-color: #10b981 !important;
+  color: white !important;
+}
+
+[data-sonner-toast][data-type="error"] {
+  background-color: #ef4444 !important;
+  color: white !important;
+}

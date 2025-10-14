@@ -3,7 +3,7 @@ import { NextResponse } from "next/server"
 // Server-side proxy for the tags endpoint to avoid client-side CORS issues.
 // It reads the external tags URL from process.env.NEXT_PUBLIC_TAGS_ENDPOINT (trimmed)
 // and forwards the response to the client as JSON.
-export async function GET() {
+export async function GET(request: Request) {
   const rawEndpoint = process.env.NEXT_PUBLIC_TAGS_ENDPOINT
   const tagsEndpoint = typeof rawEndpoint === "string" ? rawEndpoint.trim() : undefined
 
@@ -12,7 +12,19 @@ export async function GET() {
   }
 
   try {
-    const res = await fetch(tagsEndpoint, { method: "GET" })
+    // Extract Authorization header from the incoming request
+    const authHeader = request.headers.get('Authorization')
+    const requestHeaders: Record<string, string> = {}
+    
+    // Forward the Authorization header if present
+    if (authHeader) {
+      requestHeaders.Authorization = authHeader
+    }
+
+    const res = await fetch(tagsEndpoint, { 
+      method: "GET",
+      headers: requestHeaders
+    })
 
     const contentType = res.headers.get("content-type") || ""
     let body: unknown
