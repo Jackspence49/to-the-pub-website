@@ -382,6 +382,11 @@ export default function Component() {
       ...prev,
       [field]: value,
     }))
+    
+    // Clear server errors when user makes changes to critical fields
+    if (['name', 'streetAddress', 'city', 'state', 'postalCode'].includes(field) && serverError) {
+      setServerError(null)
+    }
   }
 
   const handleBarHoursChange = (dayOfWeek: number, field: keyof BarHours, value: string | boolean) => {
@@ -547,19 +552,39 @@ export default function Component() {
         }
 
         let message = `Server returned ${res.status} ${res.statusText}`
+        let isDuplicate = false
+
         if (errBody && typeof errBody === 'object') {
           const obj = errBody as Record<string, unknown>
-          if (typeof obj.error === 'string') message = obj.error
+          if (typeof obj.error === 'string') {
+            message = obj.error
+            // Check if this is a duplicate bar error (409 Conflict)
+            if (res.status === 409) {
+              isDuplicate = true
+            }
+          }
           if (obj.validationErrors && typeof obj.validationErrors === 'object') {
             setValidationErrors((prev) => ({ ...prev, ...(obj.validationErrors as ValidationErrors) }))
           }
         }
 
         setServerError(message)
-        toast.error("Failed to add business", {
-          description: message,
-          duration: 5000,
-        })
+        
+        // Show different toast messages for duplicate vs other errors
+        if (isDuplicate) {
+          toast.error("Duplicate Business Detected", {
+            description: "A business with this name and address already exists.",
+            duration: Infinity,
+          })
+        } else {
+          toast.error("Failed to add business", {
+            description: message,
+            duration: Infinity,
+          })
+        }
+        
+        // Scroll to top to show error message
+        window.scrollTo({ top: 0, behavior: 'smooth' })
         return
       }
 
@@ -588,7 +613,7 @@ export default function Component() {
       setServerError(errorMessage)
       toast.error("Unexpected error occurred", {
         description: errorMessage,
-        duration: 5000,
+        duration: Infinity,
       })
     } finally {
       setIsSubmitting(false)
@@ -630,9 +655,6 @@ export default function Component() {
 
           {/* Submit Button */}
           <div className="flex justify-end">
-            {serverError && (
-              <div className="mr-4 text-sm text-red-600">Error: {serverError}</div>
-            )}
             <Button 
               type="submit" 
               size="lg" 
