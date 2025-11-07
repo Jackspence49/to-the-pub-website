@@ -155,27 +155,31 @@ const DAYS_OF_WEEK: DayInfo[] = [
 ]
 
 
+// Helper functions to create fresh initial state
+const createInitialBusinessInfo = (): BusinessInfo => ({
+  name: "",
+  streetAddress: "",
+  city: "",
+  state: "",
+  postalCode: "",
+  phone: "",
+  website: "",
+  latitude: null,
+  longitude: null,
+  tags: [],
+})
+
+const createInitialBarHours = (): BarHours[] => DAYS_OF_WEEK.map(day => ({
+  dayOfWeek: day.id,
+  openTime: "09:00",
+  closeTime: "22:00",
+  isClosed: false
+}))
+
 export default function Component() {
   // Initial state values
-  const initialBusinessInfo: BusinessInfo = {
-    name: "",
-    streetAddress: "",
-    city: "",
-    state: "",
-    postalCode: "",
-    phone: "",
-    website: "",
-    latitude: null,
-    longitude: null,
-    tags: [],
-  }
-
-  const initialBarHours: BarHours[] = DAYS_OF_WEEK.map(day => ({
-    dayOfWeek: day.id,
-    openTime: "09:00",
-    closeTime: "22:00",
-    isClosed: false
-  }))
+  const initialBusinessInfo = createInitialBusinessInfo()
+  const initialBarHours = createInitialBarHours()
 
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>(initialBusinessInfo)
 
@@ -201,6 +205,7 @@ export default function Component() {
   const BARS_ENDPOINT = "/api/bars"
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
   const [serverError, setServerError] = useState<string | null>(null)
+  const [formResetKey, setFormResetKey] = useState<number>(0)
 
   useEffect(() => {
     let mounted = true
@@ -594,10 +599,11 @@ export default function Component() {
         duration: 4000,
       })
       
-      // Reset form to initial state
-      setBusinessInfo(initialBusinessInfo)
-      setBarHours(initialBarHours)
+      // Reset form to initial state - create fresh instances
+      setBusinessInfo(createInitialBusinessInfo())
+      setBarHours(createInitialBarHours())
       setValidationErrors({})
+      setFormResetKey(prev => prev + 1) // Force BarHoursCard to remount
       setServerError(null)
       
       // Clear the autocomplete search input
@@ -647,6 +653,7 @@ export default function Component() {
           />
 
           <BarHoursCard
+            key={formResetKey}
             days={DAYS_OF_WEEK}
             barHours={barHours}
             onChange={handleBarHoursChange}
