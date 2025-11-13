@@ -57,13 +57,18 @@ body {
 
 /* Ensure Sonner toasts are visible */
 [data-sonner-toaster] {
-  z-index: 9999 !important;
+  z-index: 999999 !important;
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
 }
 
 [data-sonner-toast] {
   background-color: var(--charcoal-gray) !important;
   border: 1px solid var(--light-gray) !important;
   color: var(--white) !important;
+  min-width: 300px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
 }
 
 [data-sonner-toast][data-type="success"] {

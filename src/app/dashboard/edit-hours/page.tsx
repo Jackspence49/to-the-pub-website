@@ -1,9 +1,10 @@
 "use client"
 
 import React, { useState, useCallback, useEffect } from "react"
+import { toast } from "sonner"
+import { Toaster } from "sonner"
 import { Button } from "@/components/ui/button"
 import { SearchBar } from "@/components/ui/search-bar"
-import { Badge } from "@/components/ui/badge"
 import BarHoursCard from "@/components/cards/BarHoursCard"
 import { api } from "@/lib/api"
 
@@ -66,7 +67,6 @@ export default function EditHoursPage() {
   const [isSearching, setIsSearching] = useState<boolean>(false)
   const [selectedBusiness, setSelectedBusiness] = useState<SearchResult | null>(null)
   const [isLoadingHours, setIsLoadingHours] = useState<boolean>(false)
-  const [isFormSubmitted, setIsFormSubmitted] = useState<boolean>(false)
 
   const formatTime = (time: string | null | undefined): string => {
     if (!time) return "09:00"
@@ -221,21 +221,26 @@ export default function EditHoursPage() {
       const response = await api.put(`/api/bars/${selectedBusiness.id}/hours`, payload, { requireAuth: true })
 
       if (response.ok) {
-        setIsFormSubmitted(true)
-        // Reset form state after a delay to show the submitted state
+        toast.success("Business hours updated successfully!", {
+          description: `Hours for ${selectedBusiness.name} have been saved.`
+        })
+        
+        // Reset form state after a short delay
         setTimeout(() => {
           setSelectedBusiness(null)
           setSearchQuery("")
           setBarHours(createInitialBarHours())
           setValidationErrors({})
-          setIsFormSubmitted(false)
-        }, 3000)
+        }, 1500)
       } else {
-        throw new Error("Failed to update hours")
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || "Failed to update hours")
       }
     } catch (error) {
       console.error("Error updating hours:", error)
-      alert("Failed to update hours. Please try again.")
+      toast.error("Failed to update hours", {
+        description: error instanceof Error ? error.message : "Please try again later."
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -307,7 +312,6 @@ export default function EditHoursPage() {
     setSearchResults([])
     setSelectedBusiness(null)
     setSearchQuery("")
-    setIsFormSubmitted(false)
     // Reset to default hours when clearing
     setBarHours(createInitialBarHours())
   }, [])
@@ -335,6 +339,9 @@ export default function EditHoursPage() {
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">
+      {/* Add Toaster directly to this page for testing */}
+      <Toaster position="top-right" richColors expand />
+      
       <div className="mx-auto max-w-2xl">
         <SearchBar
           value={searchQuery}
@@ -382,20 +389,14 @@ export default function EditHoursPage() {
               >
                 Cancel
               </Button>
-              {isFormSubmitted ? (
-                <Badge variant="default" className="px-6 py-3 text-sm bg-green-600 text-white">
-                  Form Submitted ✓
-                </Badge>
-              ) : (
-                <Button 
-                  type="button"
-                  onClick={handleSubmit}
-                  disabled={isSubmitting || !selectedBusiness}
-                  className="px-8 py-2 bg-accent hover:bg-accent/90 text-white"
-                >
-                  {isSubmitting ? 'Saving...' : 'Save Hours'}
-                </Button>
-              )}
+              <Button 
+                type="button"
+                onClick={handleSubmit}
+                disabled={isSubmitting || !selectedBusiness}
+                className="px-8 py-2 bg-accent hover:bg-accent/90 text-white"
+              >
+                {isSubmitting ? 'Saving...' : 'Save Hours'}
+              </Button>
             </div>
           </div>
         </div>
