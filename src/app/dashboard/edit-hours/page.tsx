@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { SearchBar } from "@/components/ui/search-bar"
+import { Badge } from "@/components/ui/badge"
 import BarHoursCard from "@/components/cards/BarHoursCard"
 import { api } from "@/lib/api"
 
@@ -65,6 +66,7 @@ export default function EditHoursPage() {
   const [isSearching, setIsSearching] = useState<boolean>(false)
   const [selectedBusiness, setSelectedBusiness] = useState<SearchResult | null>(null)
   const [isLoadingHours, setIsLoadingHours] = useState<boolean>(false)
+  const [isFormSubmitted, setIsFormSubmitted] = useState<boolean>(false)
 
   const formatTime = (time: string | null | undefined): string => {
     if (!time) return "09:00"
@@ -94,26 +96,48 @@ export default function EditHoursPage() {
   }
 
   const fetchBarHours = useCallback(async (barId: string | number) => {
+    console.log("=== Starting fetchBarHours ===", { barId })
     setIsLoadingHours(true)
     try {
-      const response = await api.get(`/api/bars/${barId}`, { requireAuth: true })
+      console.log("Making API request to:", `/api/bars/${barId}/hours`)
+      const response = await api.get(`/api/bars/${barId}/hours`, { requireAuth: true })
+      console.log("API response status:", response.status, "ok:", response.ok)
 
       if (response.ok) {
         const data = await response.json()
+        console.log("Raw API response data:", data)
         
-        if (data.success && data.data && data.data.hours) {
-          const apiHours = data.data.hours
-          
+        // Handle different API response formats
+        let apiHours = []
+        
+        if (Array.isArray(data)) {
+          // Direct array format
+          apiHours = data
+        } else if (data.success && Array.isArray(data.data)) {
+          // New format: { success: true, data: [...hours array...], meta: {...} }
+          apiHours = data.data
+        } else if (data.success && data.data && Array.isArray(data.data.hours)) {
+          // Old format: { success: true, data: { hours: [...] } }
+          apiHours = data.data.hours
+        }
+        
+        console.log("Processed API hours:", apiHours)
+        
+        if (Array.isArray(apiHours) && apiHours.length > 0) {
           const convertedHours = DAYS_OF_WEEK.map(day => {
             const dayHours = apiHours.find((h: { day_of_week: number; open_time?: string; close_time?: string; is_closed?: boolean }) => h.day_of_week === day.id)
             
+            console.log(`Day ${day.id} (${day.name}):`, dayHours)
+            
             if (dayHours) {
-              return {
+              const converted = {
                 dayOfWeek: day.id,
                 openTime: formatTime(dayHours.open_time),
                 closeTime: formatTime(dayHours.close_time),
                 isClosed: dayHours.is_closed || false
               }
+              console.log(`Converted for day ${day.id}:`, converted)
+              return converted
             } else {
               return {
                 dayOfWeek: day.id,
@@ -124,8 +148,13 @@ export default function EditHoursPage() {
             }
           })
           
+          console.log("Final converted hours:", convertedHours)
           setBarHours(convertedHours)
+        } else {
+          console.log("No hours found in API response or invalid format")
         }
+      } else {
+        console.error("API request failed:", response.status, response.statusText)
       }
     } catch (error) {
       console.error("Error fetching bar hours:", error)
@@ -159,11 +188,6 @@ export default function EditHoursPage() {
           errors[`${hours.dayOfWeek}_closeTime`] = "Close time is required"
           isValid = false
         }
-        // Check if close time is after open time
-        if (hours.openTime && hours.closeTime && hours.openTime >= hours.closeTime) {
-          errors[`${hours.dayOfWeek}_timeRange`] = "Close time must be after open time"
-          isValid = false
-        }
       }
     })
 
@@ -171,9 +195,7 @@ export default function EditHoursPage() {
     return isValid
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
+  const handleSubmit = async () => {
     if (!validateForm() || !selectedBusiness) {
       return
     }
@@ -196,10 +218,18 @@ export default function EditHoursPage() {
         }))
       }
 
-      const response = await api.put(`/api/bars/${selectedBusiness.id}`, payload, { requireAuth: true })
+      const response = await api.put(`/api/bars/${selectedBusiness.id}/hours`, payload, { requireAuth: true })
 
       if (response.ok) {
-        alert("Hours updated successfully!")
+        setIsFormSubmitted(true)
+        // Reset form state after a delay to show the submitted state
+        setTimeout(() => {
+          setSelectedBusiness(null)
+          setSearchQuery("")
+          setBarHours(createInitialBarHours())
+          setValidationErrors({})
+          setIsFormSubmitted(false)
+        }, 3000)
       } else {
         throw new Error("Failed to update hours")
       }
@@ -277,21 +307,31 @@ export default function EditHoursPage() {
     setSearchResults([])
     setSelectedBusiness(null)
     setSearchQuery("")
+    setIsFormSubmitted(false)
     // Reset to default hours when clearing
     setBarHours(createInitialBarHours())
   }, [])
 
   const handleSelectBusiness = useCallback(async (business: SearchResult) => {
+    console.log("=== Selecting business ===", business)
     // Clear results immediately to close dropdown
     setSearchResults([])
     
     // Set selected business and update search query
     setSelectedBusiness(business)
     setSearchQuery(business.name)
+    console.log("Selected business state updated, fetching hours...")
     
     // Fetch and populate bar hours
     await fetchBarHours(business.id)
   }, [fetchBarHours])
+
+  // Debug: log current state
+  console.log("=== Component Render ===", {
+    selectedBusiness,
+    isLoadingHours,
+    barHours: barHours.map(h => ({ day: h.dayOfWeek, open: h.openTime, close: h.closeTime, closed: h.isClosed }))
+  })
 
   return (
     <div className="min-h-screen bg-background py-8 px-4">
@@ -324,7 +364,7 @@ export default function EditHoursPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="space-y-6">
           <BarHoursCard
             days={DAYS_OF_WEEK}
             barHours={barHours}
@@ -342,17 +382,23 @@ export default function EditHoursPage() {
               >
                 Cancel
               </Button>
-              <Button 
-                type="submit" 
-                size="lg" 
-                className="px-8 bg-accent hover:bg-accent/90 text-white"
-                disabled={isSubmitting || !selectedBusiness}
-              >
-                {isSubmitting ? 'Saving...' : 'Save Hours'}
-              </Button>
+              {isFormSubmitted ? (
+                <Badge variant="default" className="px-6 py-3 text-sm bg-green-600 text-white">
+                  Form Submitted ✓
+                </Badge>
+              ) : (
+                <Button 
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || !selectedBusiness}
+                  className="px-8 py-2 bg-accent hover:bg-accent/90 text-white"
+                >
+                  {isSubmitting ? 'Saving...' : 'Save Hours'}
+                </Button>
+              )}
             </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   )

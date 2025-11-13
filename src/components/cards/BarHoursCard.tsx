@@ -77,6 +77,7 @@ export default function BarHoursCard({ days, barHours, onChange, validationError
 
   // Sync hoursBlocks with barHours prop changes (when API data comes in)
   useEffect(() => {
+    console.log("BarHoursCard useEffect - barHours changed:", barHours)
     const newHoursBlocks = initializeFromBarHours(barHours)
     setHoursBlocks(newHoursBlocks)
   }, [barHours])
