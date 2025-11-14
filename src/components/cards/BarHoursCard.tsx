@@ -33,21 +33,22 @@ type Props = {
   barHours: BarHours[]
   onChange: (day: number, field: keyof BarHours, value: string | boolean) => void
   validationErrors?: { [key: string]: string }
+  preserveUserOrder?: boolean // New prop to control behavior
 }
 
-export default function BarHoursCard({ days, barHours, onChange, validationErrors }: Props) {
-  // Initialize hoursBlocks from barHours prop
+export default function BarHoursCard({ days, barHours, onChange, validationErrors, preserveUserOrder = false }: Props) {
+  // Initialize hoursBlocks from barHours prop - preserves selection order
   const initializeFromBarHours = (barHours: BarHours[]): HoursBlock[] => {
     console.log("Initializing hours blocks from barHours:", barHours)
     const groupedHours = new Map<string, number[]>()
     
+    // Process barHours in their original array order to preserve sequence
     barHours.forEach(hour => {
       console.log("Processing hour:", hour)
       if (!hour.isClosed) {
-        // Ensure times are properly formatted before creating the key
         const openTime = hour.openTime || "09:00"
         const closeTime = hour.closeTime || "22:00"
-        const key = `${openTime}|${closeTime}` // Use | instead of - to avoid conflicts
+        const key = `${openTime}|${closeTime}`
         console.log("Created key:", key, "from openTime:", openTime, "closeTime:", closeTime)
         if (!groupedHours.has(key)) {
           groupedHours.set(key, [])
@@ -58,14 +59,15 @@ export default function BarHoursCard({ days, barHours, onChange, validationError
     
     console.log("Grouped hours map:", groupedHours)
     
-    const result = Array.from(groupedHours.entries()).map(([timeKey, dayIds], index) => {
-      const [openTime, closeTime] = timeKey.split('|') // Split on | instead of -
+    // Convert to array while preserving the insertion order of time keys
+    const result = Array.from(groupedHours.entries()).map(([timeKey, days], index) => {
+      const [openTime, closeTime] = timeKey.split('|')
       console.log("Splitting timeKey:", timeKey, "into openTime:", openTime, "closeTime:", closeTime)
       return {
         id: `block-${index}`,
         openTime: openTime || "09:00",
         closeTime: closeTime || "22:00",
-        selectedDays: dayIds
+        selectedDays: days // Keep the order from barHours array
       }
     })
     
@@ -73,14 +75,28 @@ export default function BarHoursCard({ days, barHours, onChange, validationError
     return result
   }
 
-  const [hoursBlocks, setHoursBlocks] = useState<HoursBlock[]>(() => initializeFromBarHours(barHours))
+  const [hoursBlocks, setHoursBlocks] = useState<HoursBlock[]>(() => {
+    return initializeFromBarHours(barHours)
+  })
 
-  // Sync hoursBlocks with barHours prop changes (when API data comes in)
+  // Track if user has made any changes to preserve their order
+  const [hasUserChanges, setHasUserChanges] = useState(false)
+
+  // Sync with barHours prop changes intelligently
   useEffect(() => {
-    console.log("BarHoursCard useEffect - barHours changed:", barHours)
-    const newHoursBlocks = initializeFromBarHours(barHours)
-    setHoursBlocks(newHoursBlocks)
-  }, [barHours])
+    if (!preserveUserOrder) {
+      // Always sync when preserveUserOrder is false
+      console.log("BarHoursCard useEffect - barHours changed:", barHours)
+      const newHoursBlocks = initializeFromBarHours(barHours)
+      setHoursBlocks(newHoursBlocks)
+    } else if (!hasUserChanges) {
+      // When preserveUserOrder is true, only sync if user hasn't made changes yet
+      // This allows initial data loading but preserves user changes afterward
+      console.log("BarHoursCard useEffect - loading initial data:", barHours)
+      const newHoursBlocks = initializeFromBarHours(barHours)
+      setHoursBlocks(newHoursBlocks)
+    }
+  }, [barHours, preserveUserOrder, hasUserChanges])
 
   const addHoursBlock = () => {
     const newBlock: HoursBlock = {
@@ -90,6 +106,7 @@ export default function BarHoursCard({ days, barHours, onChange, validationError
       selectedDays: []
     }
     setHoursBlocks([...hoursBlocks, newBlock])
+    setHasUserChanges(true)
   }
 
   const removeHoursBlock = (blockId: string) => {
@@ -101,6 +118,7 @@ export default function BarHoursCard({ days, barHours, onChange, validationError
       })
     }
     setHoursBlocks(hoursBlocks.filter(block => block.id !== blockId))
+    setHasUserChanges(true)
   }
 
   const updateHoursBlock = (blockId: string, field: 'openTime' | 'closeTime', value: string) => {
@@ -123,6 +141,8 @@ export default function BarHoursCard({ days, barHours, onChange, validationError
       onChange(dayId, field, value)
       onChange(dayId, 'isClosed', false)
     })
+    
+    setHasUserChanges(true)
   }
 
   const toggleDaySelection = (blockId: string, dayId: number) => {
@@ -138,20 +158,20 @@ export default function BarHoursCard({ days, barHours, onChange, validationError
         if (block.id === blockId) {
           // Handle the target block
           if (isCurrentlySelected) {
-            // Remove day from this block
+            // Remove day from this block - preserve order of remaining items
             return {
               ...block,
               selectedDays: block.selectedDays.filter(id => id !== dayId)
             }
           } else {
-            // Add day to this block
+            // Add day to this block - APPEND to preserve user selection order
             return {
               ...block,
               selectedDays: [...block.selectedDays, dayId]
             }
           }
         } else if (block.selectedDays.includes(dayId) && !isCurrentlySelected) {
-          // Remove day from other blocks when adding to target block
+          // Remove day from other blocks when adding to target block - preserve order
           return {
             ...block,
             selectedDays: block.selectedDays.filter(id => id !== dayId)
@@ -171,6 +191,8 @@ export default function BarHoursCard({ days, barHours, onChange, validationError
       onChange(dayId, 'closeTime', targetBlock.closeTime)
       onChange(dayId, 'isClosed', false)
     }
+    
+    setHasUserChanges(true)
   }
 
   const getClosedDays = () => {

@@ -377,6 +377,7 @@ export default function EditHoursPage() {
             barHours={barHours}
             onChange={handleBarHoursChange}
             validationErrors={validationErrors}
+            preserveUserOrder={true}
           />
 
           <div className="flex justify-between items-center">

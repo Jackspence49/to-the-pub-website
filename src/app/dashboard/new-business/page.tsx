@@ -495,13 +495,17 @@ export default function Component() {
   }
 
   const dedupeBarHours = (hoursArr: BarHours[]) => {
-    const map = new Map<number, BarHours>()
+    const seen = new Set<number>()
+    const result: BarHours[] = []
+    
+    // Preserve original order while deduplicating
     for (const h of hoursArr) {
-      if (!map.has(h.dayOfWeek)) {
-        map.set(h.dayOfWeek, h)
+      if (!seen.has(h.dayOfWeek)) {
+        seen.add(h.dayOfWeek)
+        result.push(h)
       }
     }
-    return Array.from(map.values())
+    return result
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -658,6 +662,7 @@ export default function Component() {
             barHours={barHours}
             onChange={handleBarHoursChange}
             validationErrors={validationErrors.barHours}
+            preserveUserOrder={true}
           />
 
           {/* Submit Button */}
