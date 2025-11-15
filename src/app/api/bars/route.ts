@@ -4,8 +4,9 @@ import { NextResponse } from "next/server"
 // Reads upstream URL from process.env.NEXT_PUBLIC_BAR_CREATION_ENDPOINT (trimmed).
 // Forwards JSON body and returns upstream response.
 export async function POST(request: Request) {
-  const rawEndpoint = process.env.NEXT_PUBLIC_BAR_CREATION_ENDPOINT
-  const barsEndpoint = typeof rawEndpoint === "string" ? rawEndpoint.trim() : undefined
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
+  const barsEndpoint = `${baseUrl}/bars`
+
 
   if (!barsEndpoint) {
     // Log a helpful diagnostic to the server logs so you can debug missing config locally.

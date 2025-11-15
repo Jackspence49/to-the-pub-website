@@ -32,8 +32,6 @@ interface BarInfo {
   address_city: string
   address_state: string
   address_zip: string
-  latitude: string
-  longitude: string
   phone: string
   website: string
   instagram: string
@@ -105,8 +103,6 @@ const createInitialBarInfo = (): BarInfo => ({
   address_city: "",
   address_state: "",
   address_zip: "",
-  latitude: "",
-  longitude: "",
   phone: "",
   website: "",
   instagram: "",
@@ -151,8 +147,6 @@ export default function EditBarInfoPage() {
           address_city: barData.address_city || "",
           address_state: barData.address_state || "",
           address_zip: barData.address_zip || "",
-          latitude: barData.latitude ? String(barData.latitude) : "",
-          longitude: barData.longitude ? String(barData.longitude) : "",
           phone: barData.phone || "",
           website: barData.website || "",
           instagram: barData.instagram || "",
@@ -240,8 +234,6 @@ export default function EditBarInfoPage() {
         address_city: barInfo.address_city,
         address_state: barInfo.address_state,
         address_zip: barInfo.address_zip,
-        latitude: barInfo.latitude || null,
-        longitude: barInfo.longitude || null,
         phone: barInfo.phone || null,
         website: barInfo.website || null,
         instagram: barInfo.instagram || null,
@@ -524,36 +516,6 @@ export default function EditBarInfoPage() {
                 {validationErrors.address_zip && (
                   <p className="text-sm text-red-600">{validationErrors.address_zip}</p>
                 )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="latitude" className="text-foreground text-[var(--dark-sapphire)]">
-                    Latitude
-                  </Label>
-                  <Input
-                    id="latitude"
-                    type="text"
-                    value={barInfo.latitude}
-                    onChange={(e) => handleBarInfoChange("latitude", e.target.value)}
-                    placeholder="Enter latitude"
-                    className="bg-background border-border-light text-foreground text-[var(--dark-sapphire)]"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="longitude" className="text-foreground text-[var(--dark-sapphire)]">
-                    Longitude
-                  </Label>
-                  <Input
-                    id="longitude"
-                    type="text"
-                    value={barInfo.longitude}
-                    onChange={(e) => handleBarInfoChange("longitude", e.target.value)}
-                    placeholder="Enter longitude"
-                    className="bg-background border-border-light text-foreground text-[var(--dark-sapphire)]"
-                  />
-                </div>
               </div>
 
               <div className="space-y-2">
