@@ -4,8 +4,8 @@ import { NextResponse } from "next/server"
 // Reads upstream URL from process.env.NEXT_PUBLIC_LOGIN_ENDPOINT (trimmed).
 // Forwards JSON body and returns upstream response.
 export async function POST(request: Request) {
-  const rawEndpoint = process.env.NEXT_PUBLIC_LOGIN_ENDPOINT
-  const loginEndpoint = typeof rawEndpoint === "string" ? rawEndpoint.trim() : undefined
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() 
+  const loginEndpoint = `${baseUrl}/users/login`
 
   if (!loginEndpoint) {
     try {

@@ -5,7 +5,7 @@ import { NextResponse } from "next/server"
 // Forwards query parameters and returns upstream response.
 export async function GET(request: Request) {
   // Use your actual API structure
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || 'http://localhost:3000'
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
   const searchEndpoint = `${baseUrl}/bars/search/name`
 
   console.log("Using search endpoint:", searchEndpoint)

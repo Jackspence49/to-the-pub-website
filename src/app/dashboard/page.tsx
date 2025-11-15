@@ -9,9 +9,29 @@ function DashboardContent() {
       description: "Add a new business to the platform"
     },
     {
-      label: "Create New User",
-      href: "/dashboard/new-user", 
-      description: "Create a new user account"
+      label: "Edit Business Info",
+      href: "/dashboard/edit-bar-info",
+      description: "Edit bar information"
+    },
+    {
+      label: "Edit Business Hours",
+      href: "/dashboard/edit-hours",
+      description: "Edit business operating hours"
+    },
+    {
+      label: "Edit Business's Bar Tags",
+      href: "/dashboard/edit-bar-tags",
+      description: "Edit business's bar tags"
+    },
+    {
+      label: "Create a New Bar Tags",
+      href: "/dashboard/create-bar-tag",
+      description: "Add new bar tags to the system"
+    },
+    {
+      label: "Edit Bar Tags",
+      href: "/dashboard/edit-bar-tags",
+      description: "Edit and Delete bar tags"
     },
     {
       label: "Create New Event",
@@ -19,29 +39,24 @@ function DashboardContent() {
       description: "Create a new event"
     },
     {
-      label: "Create a New Tags",
-      href: "/dashboard/new-tags",
-      description: "Add new tags to the system"
-    },
-    {
-      label: "Edit Hours",
-      href: "/dashboard/edit-hours",
-      description: "Edit business operating hours"
-    },
-    {
-      label: "Edit Tags",
-      href: "/dashboard/edit-tags",
-      description: "Edit bar tags"
-    },
-    {
-      label: "Edit Bar Info",
-      href: "/dashboard/edit-bar-info",
-      description: "Edit bar information"
-    },
-    {
       label: "Edit Event",
       href: "/dashboard/edit-event",
       description: "Edit existing events"
+    },
+    {
+      label: "Create a New Event Tag",
+      href: "/dashboard/create-event-tag",
+      description: "Add new event tags to the system"
+    },
+    {
+      label: "Edit Event Tags",
+      href: "/dashboard/edit-event-tags",
+      description: "Edit and Delete bar tags"
+    },
+    {
+      label: "Create New User",
+      href: "/dashboard/new-user", 
+      description: "Create a new user account"
     }
   ]
 

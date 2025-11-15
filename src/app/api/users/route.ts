@@ -1,21 +1,21 @@
 import { NextResponse } from "next/server"
 
 // POST proxy for creating users.
-// Reads upstream URL from process.env.NEXT_PUBLIC_USER_CREATION_ENDPOINT (trimmed).
+// Reads upstream URL from process.env.NEXT_PUBLIC_API_BASE_URL and appends /users.
 // Forwards JSON body and returns upstream response.
 export async function POST(request: Request) {
-  const rawEndpoint = process.env.NEXT_PUBLIC_USER_CREATION_ENDPOINT
-  const usersEndpoint = typeof rawEndpoint === "string" ? rawEndpoint.trim() : undefined
+  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() 
+  const usersEndpoint = `${baseUrl}/users`
 
-  if (!usersEndpoint) {
+  if (!process.env.NEXT_PUBLIC_API_BASE_URL) {
     try {
       const keys = Object.keys(process.env).filter((k) => k.toUpperCase().includes("USER") || k.toUpperCase().includes("API"));
-      console.error("NEXT_PUBLIC_USER_CREATION_ENDPOINT is missing or empty. Found env keys:", keys);
+      console.error("NEXT_PUBLIC_API_BASE_URL is missing or empty. Found env keys:", keys);
     } catch {
       // ignore logging failure
     }
 
-    return NextResponse.json({ error: "User creation endpoint is not configured. Set NEXT_PUBLIC_USER_CREATION_ENDPOINT in your environment or .env(.local)" }, { status: 500 })
+    return NextResponse.json({ error: "API base URL is not configured. Set NEXT_PUBLIC_API_BASE_URL in your environment or .env(.local)" }, { status: 500 })
   }
 
   try {
