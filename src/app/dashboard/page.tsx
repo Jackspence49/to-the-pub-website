@@ -20,7 +20,7 @@ function DashboardContent() {
     },
     {
       label: "Edit Business's Bar Tags",
-      href: "/dashboard/edit-bar-tags",
+      href: "/dashboard/edit-business-tags",
       description: "Edit business's bar tags"
     },
     {
