@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Tag as TagIcon, Loader2 } from "lucide-react"
+import { Tag as TagIcon, Loader2, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
@@ -58,8 +58,21 @@ export default function EditBarTagPage() {
 
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
   const [isLoading, setIsLoading] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const router = useRouter()
+
+  // Handle Escape key to close delete confirmation dialog
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showDeleteConfirm && !isDeleting) {
+        setShowDeleteConfirm(false)
+      }
+    }
+    window.addEventListener('keydown', handleEscape)
+    return () => window.removeEventListener('keydown', handleEscape)
+  }, [showDeleteConfirm, isDeleting])
 
   // Fetch all tags on component mount
   useEffect(() => {
@@ -272,6 +285,89 @@ export default function EditBarTagPage() {
     }
   }
 
+  const handleDeleteClick = () => {
+    if (!selectedTagId) {
+      toast.error("Please select a tag to delete")
+      return
+    }
+    setShowDeleteConfirm(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    setShowDeleteConfirm(false)
+    setIsDeleting(true)
+    setServerError(null)
+
+    try {
+      const endpoint = `/api/tags/${selectedTagId}`
+      console.log("Making delete request to:", endpoint)
+      console.log("Selected tag ID:", selectedTagId)
+      
+      const response = await api.delete(endpoint, { requireAuth: true })
+      
+      console.log("Delete response status:", response.status)
+      console.log("Delete response ok:", response.ok)
+
+      if (!response.ok) {
+        let errorMessage = `Request failed with status ${response.status}`
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorData.message || errorMessage
+          
+          // Handle specific error statuses
+          if (response.status === 404) {
+            errorMessage = "Tag not found"
+          } else if (response.status === 401) {
+            errorMessage = "Authentication required. Please log in again."
+          }
+        } catch {
+          // If JSON parsing fails, use default message
+        }
+        throw new Error(errorMessage)
+      }
+
+      // Success - show toast
+      toast.success("Tag deleted successfully!", {
+        description: `${selectedTag?.name} has been deleted.`,
+        duration: 4000,
+      })
+
+      // Reset form
+      setSelectedTagId("")
+      setSelectedTag(null)
+      setFormData({
+        name: "",
+        category: "",
+      })
+      setValidationErrors({})
+      setServerError(null)
+
+      // Refresh tags list to get updated data
+      const refreshResponse = await api.get("/api/tags", { requireAuth: true })
+      if (refreshResponse.ok) {
+        const refreshData = await refreshResponse.json()
+        let tags: Tag[] = []
+        if (Array.isArray(refreshData)) {
+          tags = refreshData
+        } else if (Array.isArray(refreshData.tags)) {
+          tags = refreshData.tags
+        } else if (Array.isArray(refreshData.data)) {
+          tags = refreshData.data
+        }
+        setAvailableTags(tags)
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Failed to delete tag"
+      setServerError(errorMessage)
+      toast.error("Failed to delete tag", {
+        description: errorMessage,
+        duration: Infinity,
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background py-8 px-4">
       <div className="mx-auto max-w-2xl">
@@ -412,13 +508,33 @@ export default function EditBarTagPage() {
             </Card>
           )}
 
-          {/* Submit Button */}
-          <div className="flex justify-end">
+          {/* Submit and Delete Buttons */}
+          <div className="flex justify-end gap-4">
+            <Button
+              type="button"
+              size="lg"
+              variant="destructive"
+              className="px-8 bg-red-600 hover:bg-red-700 text-white"
+              disabled={isDeleting || isLoading || !selectedTag}
+              onClick={handleDeleteClick}
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete Tag
+                </>
+              )}
+            </Button>
             <Button
               type="submit"
               size="lg"
               className="px-8 bg-accent hover:bg-accent/90 text-white"
-              disabled={isLoading || !selectedTag}
+              disabled={isLoading || isDeleting || !selectedTag}
             >
               {isLoading ? (
                 <>
@@ -432,6 +548,53 @@ export default function EditBarTagPage() {
           </div>
         </form>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          onClick={() => !isDeleting && setShowDeleteConfirm(false)}
+        >
+          <div 
+            className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-[var(--dark-sapphire)] mb-2">
+              Confirm Deletion
+            </h3>
+            <p className="text-[var(--dark-sapphire)] mb-6">
+              Are you sure you want to delete the tag <strong>"{selectedTag?.name}"</strong>? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="px-6 border-gray-300 text-[var(--dark-sapphire)] hover:bg-gray-50"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDeleteConfirm}
+                disabled={isDeleting}
+                className="px-6 bg-red-600 hover:bg-red-700 text-white"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
