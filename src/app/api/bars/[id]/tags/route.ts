@@ -102,6 +102,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   console.log("Adding tag to bar ID:", barId)
 
+  // Declare tagsEndpoint here so it's available in the catch block for better diagnostics
+  let tagsEndpoint: string | undefined = undefined
+
   try {
     const body = await request.json().catch(() => null)
     
@@ -120,7 +123,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     }
 
     // Construct endpoint with tagId in the path: /bars/:barID/tags/:tagID
-    const tagsEndpoint = `${baseUrl}/bars/${barId}/tags/${tagId}`
+    tagsEndpoint = `${baseUrl}/bars/${barId}/tags/${tagId}`
 
     console.log("Request body:", JSON.stringify(body, null, 2))
     console.log("Using tags endpoint:", tagsEndpoint)

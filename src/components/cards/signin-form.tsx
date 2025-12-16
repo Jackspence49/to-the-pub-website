@@ -62,7 +62,7 @@ export function SignInForm() {
 
     try {
       // Use internal server-side proxy to avoid exposing upstream URL to the browser
-      const response = await fetch('/api/login', {
+      const response = await fetch('/api/users/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

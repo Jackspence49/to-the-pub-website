@@ -37,7 +37,6 @@ export default function CreateBarTagPage() {
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
   const [isLoading, setIsLoading] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
-  const router = useRouter()
 
   const handleFieldChange = (field: keyof TagFormData, value: string) => {
     setFormData((prev) => ({
