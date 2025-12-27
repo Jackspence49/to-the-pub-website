@@ -34,14 +34,9 @@ function DashboardContent() {
       description: "Edit and Delete bar tags"
     },
     {
-      label: "Create New Event",
+      label: "Create and Edit Events",
       href: "/dashboard/new-event",
-      description: "Create a new event"
-    },
-    {
-      label: "Edit Event",
-      href: "/dashboard/edit-event",
-      description: "Edit existing events"
+      description: "Create and edit events"
     },
     {
       label: "Create a New Event Tag",

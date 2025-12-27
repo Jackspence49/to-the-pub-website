@@ -1,70 +1,99 @@
 import { NextResponse } from "next/server"
 
-// Master event API proxy
-// - PUT: update master event (template)
-// - DELETE: soft delete master event (is_active=false)
+type RouteContext = { params: Promise<{ id: string }> }
 
-export async function PUT(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params
+const requireBaseUrl = () => {
   const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
-  const endpoint = `${baseUrl}/events/${id}`
-
   if (!baseUrl) {
-    return NextResponse.json({ error: "API base URL is not configured. Set NEXT_PUBLIC_API_BASE_URL" }, { status: 500 })
+    throw new Error("API base URL is not configured. Set NEXT_PUBLIC_API_BASE_URL")
   }
+  return baseUrl
+}
 
+const buildHeaders = (request: Request, includeJson = false) => {
+  const headers: Record<string, string> = {}
+  const authHeader = request.headers.get("Authorization")
+  if (authHeader) headers.Authorization = authHeader
+  if (includeJson) headers["Content-Type"] = "application/json"
+  return headers
+}
+
+const proxyRequest = async (request: Request, method: "GET" | "PATCH" | "PUT" | "DELETE", id: string, body?: unknown) => {
+  const baseUrl = requireBaseUrl()
+  const endpoint = `${baseUrl}/events/${id}`
+  const headers = buildHeaders(request, method !== "GET")
+
+  const upstream = await fetch(endpoint, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  })
+
+  const contentType = upstream.headers.get("content-type") || ""
+  const responseBody = contentType.includes("application/json") ? await upstream.json() : await upstream.text()
+
+  return NextResponse.json(responseBody as unknown, {
+    status: upstream.status,
+    headers: { "Access-Control-Allow-Origin": "*" },
+  })
+}
+
+const parseJsonBody = async (request: Request) => {
+  const payload = await request.json().catch(() => null)
+  if (!payload) {
+    throw new Error("Request body is required")
+  }
+  return payload
+}
+
+export async function GET(request: Request, { params }: RouteContext) {
   try {
-    const payload = await request.json().catch(() => null)
-    if (!payload) {
-      return NextResponse.json({ error: "Request body is required" }, { status: 400 })
-    }
-
-    const authHeader = request.headers.get("Authorization")
-    const headers: Record<string, string> = { "Content-Type": "application/json" }
-    if (authHeader) headers.Authorization = authHeader
-
-    const res = await fetch(endpoint, { method: "PUT", headers, body: JSON.stringify(payload) })
-    const contentType = res.headers.get("content-type") || ""
-    const body = contentType.includes("application/json") ? await res.json() : await res.text()
-
-    return NextResponse.json(body as unknown, {
-      status: res.status,
-      headers: { "Access-Control-Allow-Origin": "*" },
-    })
-  } catch (err) {
-    return NextResponse.json({ error: "Failed to forward request to upstream.", details: String(err) }, { status: 502 })
+    const { id } = await params
+    return await proxyRequest(request, "GET", id)
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to fetch event", details: String(error) },
+      { status: 502 }
+    )
   }
 }
 
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params
-  const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.trim()
-  const endpoint = `${baseUrl}/events/${id}`
-
-  if (!baseUrl) {
-    return NextResponse.json({ error: "API base URL is not configured. Set NEXT_PUBLIC_API_BASE_URL" }, { status: 500 })
-  }
-
+export async function PATCH(request: Request, { params }: RouteContext) {
   try {
-    const authHeader = request.headers.get("Authorization")
-    const headers: Record<string, string> = {}
-    if (authHeader) headers.Authorization = authHeader
+    const payload = await parseJsonBody(request)
+    const { id } = await params
+    return await proxyRequest(request, "PATCH", id, payload)
+  } catch (error) {
+    const status = String(error).includes("Request body is required") ? 400 : 502
+    return NextResponse.json(
+      { error: "Failed to update event", details: String(error) },
+      { status }
+    )
+  }
+}
 
-    const res = await fetch(endpoint, { method: "DELETE", headers })
-    const contentType = res.headers.get("content-type") || ""
-    const body = contentType.includes("application/json") ? await res.json() : await res.text()
+export async function PUT(request: Request, { params }: RouteContext) {
+  try {
+    const payload = await parseJsonBody(request)
+    const { id } = await params
+    return await proxyRequest(request, "PUT", id, payload)
+  } catch (error) {
+    const status = String(error).includes("Request body is required") ? 400 : 502
+    return NextResponse.json(
+      { error: "Failed to replace event", details: String(error) },
+      { status }
+    )
+  }
+}
 
-    return NextResponse.json(body as unknown, {
-      status: res.status,
-      headers: { "Access-Control-Allow-Origin": "*" },
-    })
-  } catch (err) {
-    return NextResponse.json({ error: "Failed to forward request to upstream.", details: String(err) }, { status: 502 })
+export async function DELETE(request: Request, { params }: RouteContext) {
+  try {
+    const { id } = await params
+    return await proxyRequest(request, "DELETE", id)
+  } catch (error) {
+    return NextResponse.json(
+      { error: "Failed to delete event", details: String(error) },
+      { status: 502 }
+    )
   }
 }
