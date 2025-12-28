@@ -126,13 +126,6 @@ const formatDateOnly = (date: Date): string => {
 	return `${year}-${month}-${day}`
 }
 
-const formatDateToMMDDYYYY = (value?: string | null): string => {
-	const ymd = coerceDateString(value)
-	if (!ymd) return ""
-	const [y, m, d] = ymd.split("-")
-	return `${m}-${d}-${y}`
-}
-
 const parseMMDDYYYYToYYYYMMDD = (value?: string | null): string | null => {
 	if (!value) return null
 	const trimmed = value.trim()
@@ -1178,8 +1171,15 @@ export default function NewEventPage() {
 											</div>
 
 											<div className="mt-3">
-												<Label htmlFor="start_date" className="text-foreground text-[var(--dark-sapphire)]">Start Date</Label>
-												<Input id="start_date" type="text" className="mt-1 bg-white text-black placeholder:text-gray-500 border-border-light" value={formatDateToMMDDYYYY(form.start_date)} onChange={(e) => setField("start_date", parseMMDDYYYYToYYYYMMDD(e.target.value))} placeholder="MM-DD-YYYY" />
+												   <Label htmlFor="start_date" className="text-foreground text-[var(--dark-sapphire)]">Start Date</Label>
+												   <Input
+													   id="start_date"
+													   type="date"
+													   className="mt-1 bg-white text-black placeholder:text-gray-500 border-border-light"
+													   value={form.start_date}
+													   onChange={(e) => setField("start_date", e.target.value)}
+													   placeholder="MM-DD-YYYY"
+												   />
 											</div>
 										</div>
 										<div className="space-y-2">
@@ -1293,10 +1293,10 @@ export default function NewEventPage() {
 												</div>
 												<Input
 													id="recurrence_end_date"
-													type="text"
+													type="date"
 													className="w-44 bg-white text-black placeholder:text-gray-500 border-border-light"
-													value={formatDateToMMDDYYYY(form.recurrence_end_date)}
-													onChange={(e) => setField("recurrence_end_date", parseMMDDYYYYToYYYYMMDD(e.target.value))}
+													value={form.recurrence_end_date ?? ""}
+													onChange={(e) => setField("recurrence_end_date", (e.target.value))}
 													disabled={form.recurrence_end_mode !== "date"}
 													placeholder="MM-DD-YYYY"
 												/>
@@ -1420,7 +1420,7 @@ export default function NewEventPage() {
 														<dd className="font-semibold">{formatDisplayValue(masterTagName)}</dd>
 													</div>
 													<div className="space-y-1">
-														<dt className="text-[0.65rem] uppercase tracking-wide text-gray-500">Name / Title</dt>
+														<dt className="text-[0.65rem] uppercase tracking-wide text-gray-500">Title</dt>
 														<dd className="font-semibold">{formatDisplayValue(masterEditForm.title)}</dd>
 													</div>
 													<div className="space-y-1 md:col-span-2">
@@ -1494,7 +1494,7 @@ export default function NewEventPage() {
 											</div>
 										</div>
 										<div className="space-y-2">
-											<Label className="text-xs font-semibold uppercase tracking-wide text-[var(--dark-sapphire)]">Name / Title</Label>
+											<Label className="text-xs font-semibold uppercase tracking-wide text-[var(--dark-sapphire)]">Title</Label>
 											<Input value={instanceEditForm.custom_title} onChange={(e) => setInstanceField("custom_title", e.target.value)} placeholder="Leave blank to inherit" className="bg-white text-black" />
 										</div>
 										<div className="space-y-2">
@@ -1655,9 +1655,9 @@ export default function NewEventPage() {
 															<span>On date</span>
 														</label>
 														<Input
-															type="text"
+															type="date"
 															className="w-48 bg-white text-black"
-															value={formatDateToMMDDYYYY(masterEditForm.recurrence_end_date)}
+															value={masterEditForm.recurrence_end_date ?? ""}
 															onChange={(e) => setMasterEditField("recurrence_end_date", parseMMDDYYYYToYYYYMMDD(e.target.value))}
 															disabled={masterEditForm.recurrence_end_mode !== "date"}
 															placeholder="MM-DD-YYYY"
