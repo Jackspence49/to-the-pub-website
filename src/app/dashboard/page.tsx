@@ -34,19 +34,14 @@ function DashboardContent() {
       description: "Edit and Delete bar tags"
     },
     {
-      label: "Create and Edit Events",
+      label: "Create & Edit Events",
       href: "/dashboard/new-event",
       description: "Create and edit events"
     },
     {
-      label: "Create a New Event Tag",
-      href: "/dashboard/create-event-tag",
+      label: "Create & Edit Event Tags",
+      href: "/dashboard/event-tags",
       description: "Add new event tags to the system"
-    },
-    {
-      label: "Edit Event Tags",
-      href: "/dashboard/edit-event-tags",
-      description: "Edit and Delete bar tags"
     },
     {
       label: "Create New User",

@@ -26,8 +26,7 @@ export async function PUT(
     const res = await fetch(endpoint, { method: "PUT", headers, body: JSON.stringify(payload) })
     const contentType = res.headers.get("content-type") || ""
     const body = contentType.includes("application/json") ? await res.json() : await res.text()
-
-    return NextResponse.json(body as any, {
+    return NextResponse.json(body as unknown, {
       status: res.status,
       headers: { "Access-Control-Allow-Origin": "*" },
     })
@@ -56,8 +55,7 @@ export async function DELETE(
     const res = await fetch(endpoint, { method: "DELETE", headers })
     const contentType = res.headers.get("content-type") || ""
     const body = contentType.includes("application/json") ? await res.json() : await res.text()
-
-    return NextResponse.json(body as any, {
+    return NextResponse.json(body as unknown, {
       status: res.status,
       headers: { "Access-Control-Allow-Origin": "*" },
     })
