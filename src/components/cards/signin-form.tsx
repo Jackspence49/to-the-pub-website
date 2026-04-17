@@ -20,7 +20,6 @@ export function SignInForm() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    rememberMe: false,
   })
   const [errors, setErrors] = useState<{
     email?: string
@@ -28,18 +27,11 @@ export function SignInForm() {
     general?: string
   }>({})
 
-  const validatePassword = (password: string): boolean => {
-    // At least 8 characters, 1 uppercase, 1 lowercase, 1 number, 1 special character
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/
-    return passwordRegex.test(password)
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
     setErrors({})
 
-    // Basic validation
     const newErrors: typeof errors = {}
 
     if (!formData.email) {
@@ -50,8 +42,6 @@ export function SignInForm() {
 
     if (!formData.password) {
       newErrors.password = "Password is required"
-    } else if (!validatePassword(formData.password)) {
-      newErrors.password = "Password must be at least 8 characters and include uppercase, lowercase, number, and special character"
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -75,7 +65,7 @@ export function SignInForm() {
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.message || 'Sign in failed')
+        throw new Error(error.error || 'Sign in failed')
       }
 
       const response_data = await response.json()
