@@ -66,6 +66,8 @@ const START_TIME_KEYS = ["start_time", "startTime"] as const
 const END_TIME_KEYS = ["end_time", "endTime"] as const
 const TITLE_KEYS = ["title", "name", "event_name"] as const
 const ARRAY_CONTAINER_KEYS = ["data", "results", "items", "events"] as const
+const DEFAULT_START_TIME = ""
+const DEFAULT_END_TIME = ""
 
 const coerceBoolean = (value: unknown): boolean => {
 	if (typeof value === "boolean") return value
@@ -149,8 +151,8 @@ const buildInitialFormState = (): EventFormState => ({
 	title: "",
 	description: "",
 	start_date: formatDateOnly(new Date()),
-	start_time: "",
-	end_time: "",
+	start_time: DEFAULT_START_TIME,
+	end_time: DEFAULT_END_TIME,
 	image_url: null,
 	event_tag_id: "",
 	external_link: null,
@@ -451,12 +453,6 @@ export default function NewEventPage() {
 	const [isLoadingTags, setIsLoadingTags] = useState(false)
 	const [form, setForm] = useState<EventFormState>(() => buildInitialFormState())
 	const [isSubmitting, setIsSubmitting] = useState(false)
-	const [startHour, setStartHour] = useState<string>("11")
-	const [startMinute, setStartMinute] = useState<string>("30")
-	const [startAmPm, setStartAmPm] = useState<string>("AM")
-	const [endHour, setEndHour] = useState<string>("6")
-	const [endMinute, setEndMinute] = useState<string>("30")
-	const [endAmPm, setEndAmPm] = useState<string>("PM")
 	const [currentMonth, setCurrentMonth] = useState(() => {
 		const now = new Date()
 		return new Date(now.getFullYear(), now.getMonth(), 1)
@@ -493,12 +489,6 @@ export default function NewEventPage() {
 			preferredBarId !== undefined ? preferredBarId : selectedBar ? String(selectedBar.id) : undefined
 		)
 		setForm(template)
-		setStartHour("11")
-		setStartMinute("30")
-		setStartAmPm("AM")
-		setEndHour("6")
-		setEndMinute("30")
-		setEndAmPm("PM")
 	}, [selectedBar])
 
 	const handleCloseForm = useCallback(() => {
@@ -775,48 +765,6 @@ export default function NewEventPage() {
 	}
 
 	useEffect(() => {
-		if (!startHour || !startMinute || !startAmPm) return
-		let hh = parseInt(startHour, 10) % 12
-		if (startAmPm === "PM") hh = (hh + 12) % 24
-		const hhStr = String(hh).padStart(2, "0")
-		const time = `${hhStr}:${startMinute}:00`
-		setField("start_time", time)
-	}, [startHour, startMinute, startAmPm])
-
-	useEffect(() => {
-		if (!endHour || !endMinute || !endAmPm) return
-		let hh = parseInt(endHour, 10) % 12
-		if (endAmPm === "PM") hh = (hh + 12) % 24
-		const hhStr = String(hh).padStart(2, "0")
-		const time = `${hhStr}:${endMinute}:00`
-		setField("end_time", time)
-	}, [endHour, endMinute, endAmPm])
-
-	useEffect(() => {
-		if (!form.start_time) return
-		const [h, m] = form.start_time.split(":")
-		const hhNum = parseInt(h, 10)
-		const ampm = hhNum >= 12 ? "PM" : "AM"
-		let hh12 = hhNum % 12
-		if (hh12 === 0) hh12 = 12
-		setStartHour(String(hh12))
-		setStartMinute(m)
-		setStartAmPm(ampm)
-	}, [form.start_time])
-
-	useEffect(() => {
-		if (!form.end_time) return
-		const [h, m] = form.end_time.split(":")
-		const hhNum = parseInt(h, 10)
-		const ampm = hhNum >= 12 ? "PM" : "AM"
-		let hh12 = hhNum % 12
-		if (hh12 === 0) hh12 = 12
-		setEndHour(String(hh12))
-		setEndMinute(m)
-		setEndAmPm(ampm)
-	}, [form.end_time])
-
-	useEffect(() => {
 		if (form.recurrence_end_mode === "date") {
 			setField("recurrence_end_occurrences", null)
 		}
@@ -923,6 +871,7 @@ export default function NewEventPage() {
 			bar_id: form.bar_id,
 			title: form.title,
 			description: form.description || null,
+			start_date: form.start_date || null,
 			recurrence_start_date: form.start_date || null,
 			start_time: form.start_time,
 			end_time: form.end_time,
@@ -1147,28 +1096,13 @@ export default function NewEventPage() {
 									<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
 										<div className="space-y-2">
 											<Label htmlFor="start_time" className="text-foreground text-[var(--dark-sapphire)]">Start Time</Label>
-											<div className="flex items-center gap-2">
-												<select
-													value={startHour}
-													onChange={(e) => setStartHour(e.target.value)}
-													className="h-9 rounded-md border border-border-light bg-white text-black px-2"
-												>
-													{Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-														<option key={h} value={String(h)}>{h}</option>
-													))}
-												</select>
-
-												<select value={startMinute} onChange={(e) => setStartMinute(e.target.value)} className="h-9 rounded-md border border-border-light bg-white text-black px-2">
-													{["00", "15", "30", "45"].map((m) => (
-														<option key={m} value={m}>{m}</option>
-													))}
-												</select>
-
-												<select value={startAmPm} onChange={(e) => setStartAmPm(e.target.value)} className="h-9 rounded-md border border-border-light bg-white text-black px-2">
-													<option value="AM">AM</option>
-													<option value="PM">PM</option>
-												</select>
-											</div>
+											<Input
+												id="start_time"
+												type="time"
+												className="bg-white text-black placeholder:text-gray-500 border-border-light"
+												value={formatTimeInputValue(form.start_time)}
+												onChange={(e) => setField("start_time", ensureTimeWithSeconds(e.target.value) ?? "")}
+											/>
 
 											<div className="mt-3">
 												   <Label htmlFor="start_date" className="text-foreground text-[var(--dark-sapphire)]">Start Date</Label>
@@ -1184,22 +1118,13 @@ export default function NewEventPage() {
 										</div>
 										<div className="space-y-2">
 											<Label htmlFor="end_time" className="text-foreground text-[var(--dark-sapphire)]">End Time</Label>
-											<div className="flex items-center gap-2">
-												<select value={endHour} onChange={(e) => setEndHour(e.target.value)} className="h-9 rounded-md border border-border-light bg-white text-black px-2">
-													{Array.from({ length: 12 }, (_, i) => i + 1).map((h) => (
-														<option key={h} value={String(h)}>{h}</option>
-													))}
-												</select>
-												<select value={endMinute} onChange={(e) => setEndMinute(e.target.value)} className="h-9 rounded-md border border-border-light bg-white text-black px-2">
-													{["00", "15", "30", "45"].map((m) => (
-														<option key={m} value={m}>{m}</option>
-													))}
-												</select>
-												<select value={endAmPm} onChange={(e) => setEndAmPm(e.target.value)} className="h-9 rounded-md border border-border-light bg-white text-black px-2">
-													<option value="AM">AM</option>
-													<option value="PM">PM</option>
-												</select>
-											</div>
+											<Input
+												id="end_time"
+												type="time"
+												className="bg-white text-black placeholder:text-gray-500 border-border-light"
+												value={formatTimeInputValue(form.end_time)}
+												onChange={(e) => setField("end_time", ensureTimeWithSeconds(e.target.value) ?? "")}
+											/>
 										</div>
 									</div>
 

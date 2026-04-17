@@ -38,7 +38,7 @@ export default function Home() {
                   </h1>
                   <p className="max-w-[600px] text-gray-200 md:text-xl">
                     Real-time event discovery, precise filtering, and bar atmosphere categorization to find exactly what
-                    you're looking for tonight.
+                    you&rsquo;re looking for tonight.
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
@@ -88,7 +88,7 @@ export default function Home() {
                 <Badge className="bg-[var(--vibrant-teal)] hover:bg-[var(--vibrant-teal)]/90">Key Features</Badge>
                 <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight text-[var(--charcoal-gray)]">What Makes Us Different</h2>
                 <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed text-[var(--charcoal-gray)]">
-                  To The Pub is a hyper-focused nightlife discovery platform that helps you find exactly what you're
+                  To The Pub is a hyper-focused nightlife discovery platform that helps you find exactly what you&rsquo;re
                   looking for.
                 </p>
               </div>
@@ -99,7 +99,7 @@ export default function Home() {
                   <Clock className="h-10 w-10 text-[var(--vibrant-teal)] mb-2" />
                   <CardTitle>Real-Time Event Discovery</CardTitle>
                   <CardDescription>
-                    Find out what's happening right now at venues near you, with up-to-date information.
+                    Find out what&rsquo;s happening right now at venues near you, with up-to-date information.
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -133,7 +133,7 @@ export default function Home() {
                 <Badge className="bg-[var(--goldenrod)] text-[var(--dark-sapphire)] hover:bg-[var(--goldenrod)]/90">Venue Types</Badge>
                 <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight">Find Your Perfect Atmosphere</h2>
                 <p className="mx-auto max-w-[700px] text-gray-200 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  We categorize venues to help you find exactly the atmosphere you're looking for.
+                  We categorize venues to help you find exactly the atmosphere you&rsquo;re looking for.
                 </p>
               </div>
             </div>
@@ -173,8 +173,8 @@ export default function Home() {
                     Discover Events That Match Your Vibe
                   </h2>
                   <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed text text-[var(--charcoal-gray)]">
-                    Whether you're a Social Experience Seeker or an Event-Driven Socializer, To The Pub helps you find
-                    exactly what you're looking for.
+                    Whether you&rsquo;re a Social Experience Seeker or an Event-Driven Socializer, To The Pub helps you find
+                    exactly what you&rsquo;re looking for.
                   </p>
                 </div>
                 <div className="space-y-4">
@@ -204,7 +204,7 @@ export default function Home() {
                     </div>
                     <div>
                       <h3 className="font-bold text-[var(--charcoal-gray)]">Real-Time Updates</h3>
-                      <p className="text-muted-foreground text-[var(--charcoal-gray)]">See what's happening tonight or plan for the weekend</p>
+                      <p className="text-muted-foreground text-[var(--charcoal-gray)]">See what&rsquo;s happening tonight or plan for the weekend</p>
                     </div>
                   </div>
                 </div>
@@ -316,7 +316,7 @@ export default function Home() {
                   Find Events That Match Your Mood
                 </h2>
                 <p className="mx-auto max-w-[700px] text-gray-200 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Our comprehensive event categories help you discover exactly what you're looking for.
+                  Our comprehensive event categories help you discover exactly what you&rsquo;re looking for.
                 </p>
               </div>
             </div>

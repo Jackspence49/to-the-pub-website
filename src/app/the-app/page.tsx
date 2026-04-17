@@ -20,8 +20,8 @@ export default function About() {
                   Discover Events That Match Your Vibe
                 </h2>
                 <p className="max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  Whether you're a Social Experience Seeker or an Event-Driven Socializer, To The Pub helps you find
-                  exactly what you're looking for.
+                  Whether you&rsquo;re a Social Experience Seeker or an Event-Driven Socializer, To The Pub helps you find
+                  exactly what you&rsquo;re looking for.
                 </p>
               </div>
               <div className="space-y-4">
@@ -51,7 +51,7 @@ export default function About() {
                   </div>
                   <div>
                     <h3 className="font-bold">Real-Time Updates</h3>
-                    <p className="text-muted-foreground">See what's happening tonight or plan for the weekend</p>
+                    <p className="text-muted-foreground">See what&rsquo;s happening tonight or plan for the weekend</p>
                   </div>
                 </div>
               </div>

@@ -273,7 +273,7 @@ export default function EditBusinessTagsPage() {
       )
 
       if (response.ok) {
-        const data = await response.json()
+        await response.json()
         
         // Refresh bar tags
         await fetchBarTags(selectedBusiness.id)
@@ -515,7 +515,7 @@ export default function EditBusinessTagsPage() {
               Confirm Removal
             </h3>
             <p className="text-[var(--dark-sapphire)] mb-6">
-              Are you sure you want to remove the tag <strong>"{showDeleteConfirm.name}"</strong> from {selectedBusiness?.name}? This action cannot be undone.
+              Are you sure you want to remove the tag <strong>&ldquo;{showDeleteConfirm.name}&rdquo;</strong> from {selectedBusiness?.name}? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
               <Button

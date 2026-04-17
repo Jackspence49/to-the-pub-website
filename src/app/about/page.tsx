@@ -17,8 +17,8 @@ export default function About() {
             </div>
             <div className="mx-auto max-w-3xl space-y-6 py-12 text-center">
               <p className="text-muted-foreground text-[var(--charcoal-gray)]">
-                We believe that finding the right place to spend your evening shouldn't be a challenge. Our platform is
-                built to help you discover venues and events that match exactly what you're looking for, whether it's a
+                We believe that finding the right place to spend your evening shouldn&rsquo;t be a challenge. Our platform is
+                built to help you discover venues and events that match exactly what you&rsquo;re looking for, whether it&rsquo;s a
                 quiet wine bar with live jazz or a high-energy club with the best DJs.
               </p>
               <p className="text-muted-foreground text-[var(--charcoal-gray)]">

@@ -2,7 +2,6 @@
 
 import React, { useState } from "react"
 import { Tag as TagIcon, Loader2 } from "lucide-react"
-import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"

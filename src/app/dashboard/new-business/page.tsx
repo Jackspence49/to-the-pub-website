@@ -31,6 +31,11 @@ interface BusinessInfo {
   postalCode: string
   phone: string
   website: string
+  instagram: string
+  facebook: string
+  twitter: string
+  posh: string
+  eventbrite: string
   latitude: number | null
   longitude: number | null
   tags: Tag[]
@@ -47,6 +52,18 @@ interface DayInfo {
   id: number
   name: string
   shortName: string
+}
+
+type SocialLinkField = "instagram" | "facebook" | "twitter" | "posh" | "eventbrite"
+
+const SOCIAL_LINK_FIELDS: SocialLinkField[] = ["instagram", "facebook", "twitter", "posh", "eventbrite"]
+
+const SOCIAL_LINK_LABELS: Record<SocialLinkField, string> = {
+  instagram: "Instagram",
+  facebook: "Facebook",
+  twitter: "Twitter",
+  posh: "POSH",
+  eventbrite: "Eventbrite",
 }
 
 
@@ -164,6 +181,11 @@ const createInitialBusinessInfo = (): BusinessInfo => ({
   postalCode: "",
   phone: "",
   website: "",
+  instagram: "",
+  facebook: "",
+  twitter: "",
+  posh: "",
+  eventbrite: "",
   latitude: null,
   longitude: null,
   tags: [],
@@ -206,6 +228,17 @@ export default function Component() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [formResetKey, setFormResetKey] = useState<number>(0)
+  const spotlightStats = [
+    { value: "48h", label: "Avg approval" },
+    { value: "3K+", label: "Events activated" },
+    { value: "24/7", label: "Support coverage" },
+  ]
+
+  const experienceSteps = [
+    { title: "Verify your venue", description: "Search your address, confirm core details, and add standout tags." },
+    { title: "Set live hours", description: "Tell guests when you are pouring, plus note special closures." },
+    { title: "Sync promotion", description: "Drop your social and ticketing links so we can amplify in real time." },
+  ]
 
   useEffect(() => {
     let mounted = true
@@ -367,7 +400,8 @@ export default function Component() {
         longitude = placeObj.geometry.location.lng()
       }
 
-      setBusinessInfo({
+      setBusinessInfo((prev) => ({
+        ...prev,
         name: placeObj.name || "",
         streetAddress: `${streetNumber} ${route}`.trim(),
         city: city,
@@ -378,7 +412,7 @@ export default function Component() {
         latitude: latitude,
         longitude: longitude,
         tags: [],
-      })
+      }))
     }
   }
 
@@ -468,6 +502,14 @@ export default function Component() {
       isValid = false
     }
 
+    SOCIAL_LINK_FIELDS.forEach((field) => {
+      const value = businessInfo[field]
+      if (value && !validateWebsite(value)) {
+        errors.business![field] = `Invalid ${SOCIAL_LINK_LABELS[field]} URL format`
+        isValid = false
+      }
+    })
+
     // Bar Hours Validation
     barHours.forEach((hours) => {
       if (!hours.isClosed) {
@@ -535,9 +577,12 @@ export default function Component() {
         latitude: businessInfo.latitude,
         longitude: businessInfo.longitude,
         phone: businessInfo.phone,
-        website: businessInfo.website,
-        instagram: null,
-        facebook: null,
+        website: businessInfo.website || null,
+        instagram: businessInfo.instagram || null,
+        facebook: businessInfo.facebook || null,
+        twitter: businessInfo.twitter || null,
+        posh: businessInfo.posh || null,
+        eventbrite: businessInfo.eventbrite || null,
         is_active: true,
         hours: dedupedHours.map(h => ({
           day_of_week: h.dayOfWeek,
@@ -631,52 +676,129 @@ export default function Component() {
   }
 
   return (
-      <div className="min-h-screen bg-background py-8 px-4">
-      <div className="mx-auto max-w-2xl">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Business Registration</h1>
-          <p className="text-foreground/80 mt-2 text-[var(--light-gray)]">Create your business account to get started</p>
+    <div className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.35),_transparent_60%)]" />
+        <div className="absolute inset-x-0 top-1/3 h-1/2 bg-[radial-gradient(circle_at_bottom,_rgba(236,72,153,0.25),_transparent_55%)] blur-3xl" />
+      </div>
+
+      <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="grid gap-8 lg:grid-cols-[1.3fr_0.7fr]">
+          <section className="space-y-6">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1 text-sm font-semibold uppercase tracking-[0.2em]">
+              <span className="h-2 w-2 rounded-full bg-emerald-300" />
+              New Partner Flow
+            </div>
+            <div className="space-y-4">
+              <h1 className="font-serif text-4xl leading-tight text-white sm:text-5xl">
+                Bring your bar to the To The Pub community
+              </h1>
+              <p className="max-w-2xl text-lg text-white/80">
+                Showcase your best nights, sync promo calendars, and unlock our curated audience with a guided onboarding designed for independent venues.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-6">
+              {spotlightStats.map((stat) => (
+                <div key={stat.label} className="min-w-[120px] space-y-1">
+                  <p className="text-3xl font-semibold text-white sm:text-4xl">{stat.value}</p>
+                  <p className="text-sm uppercase tracking-wide text-white/60">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <aside className="rounded-3xl border border-white/15 bg-white/5 p-6 backdrop-blur">
+            <h2 className="text-lg font-semibold text-white">What to expect</h2>
+            <div className="mt-6 space-y-4">
+              {experienceSteps.map((step, idx) => (
+                <div key={step.title} className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-base font-semibold text-white">
+                    {idx + 1}
+                  </div>
+                  <div>
+                    <p className="font-medium text-white">{step.title}</p>
+                    <p className="text-sm text-white/70">{step.description}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </aside>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <BusinessInfoCard
-            businessInfo={businessInfo}
-            validationErrors={validationErrors}
-            onChange={handleBusinessInfoChange}
-            autocompleteRef={autocompleteRef}
-            US_STATES={US_STATES}
-          />
-
-          <TagsCard
-            selectedTags={businessInfo.tags}
-            availableTags={availableTags}
-            tagsLoading={tagsLoading}
-            tagsError={tagsError}
-            onAdd={handleTagAdd}
-            onRemove={handleTagRemove}
-          />
-
-          <BarHoursCard
-            key={formResetKey}
-            days={DAYS_OF_WEEK}
-            barHours={barHours}
-            onChange={handleBarHoursChange}
-            validationErrors={validationErrors.barHours}
-            preserveUserOrder={true}
-          />
-
-          {/* Submit Button */}
-          <div className="flex justify-end">
-            <Button 
-              type="submit" 
-              size="lg" 
-              className="px-8 bg-accent hover:bg-accent/90 text-white"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Submitting...' : 'Add Business'}
-            </Button>
+        <div className="mt-12 rounded-[32px] border border-white/10 bg-white text-foreground shadow-2xl shadow-black/20">
+          <div className="border-b border-slate-100 px-6 py-8 sm:px-10">
+            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">Registration</p>
+            <div className="mt-4 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <h2 className="text-3xl font-bold text-[var(--dark-sapphire,#0f172a)]">Business Registration</h2>
+                <p className="mt-2 text-base text-slate-600">Create your business account to get started.</p>
+              </div>
+              <div className="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm text-slate-600">
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                Secure workspace
+              </div>
+            </div>
           </div>
-        </form>
+
+          <form onSubmit={handleSubmit} className="space-y-8 px-6 py-8 sm:px-10">
+            {serverError && (
+              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {serverError}
+              </div>
+            )}
+
+            <BusinessInfoCard
+              businessInfo={businessInfo}
+              validationErrors={validationErrors}
+              onChange={handleBusinessInfoChange}
+              autocompleteRef={autocompleteRef}
+              US_STATES={US_STATES}
+            />
+
+            <div className="grid gap-6 rounded-3xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-5 sm:grid-cols-2">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Curated tags</p>
+                <p className="mt-1 text-sm text-slate-600">Stack key vibes and amenities so guests instantly know what makes your space magnetic.</p>
+              </div>
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Operating rhythm</p>
+                <p className="mt-1 text-sm text-slate-600">List when the lights are on, note seasonal closures, and keep explorers in sync.</p>
+              </div>
+            </div>
+
+            <TagsCard
+              selectedTags={businessInfo.tags}
+              availableTags={availableTags}
+              tagsLoading={tagsLoading}
+              tagsError={tagsError}
+              onAdd={handleTagAdd}
+              onRemove={handleTagRemove}
+            />
+
+            <BarHoursCard
+              key={formResetKey}
+              days={DAYS_OF_WEEK}
+              barHours={barHours}
+              onChange={handleBarHoursChange}
+              validationErrors={validationErrors.barHours}
+              preserveUserOrder={true}
+            />
+
+            <div className="flex flex-col gap-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+              <p>
+                Need help? <span className="font-semibold text-accent">Contact our onboarding team</span>
+              </p>
+              <Button
+                type="submit"
+                size="lg"
+                className="rounded-2xl bg-accent px-10 text-base font-semibold uppercase tracking-wide text-white hover:bg-accent/90"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Submitting..." : "Add Business"}
+              </Button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   )

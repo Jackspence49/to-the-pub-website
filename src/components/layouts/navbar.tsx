@@ -2,6 +2,7 @@
 
 import { Button } from "../ui/button";
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect, useRef } from "react";
 import { Menu, X } from "lucide-react";
 
@@ -34,7 +35,14 @@ export function PublicNavbar() {
           <div className="flex h-16 items-center justify-between md:container px-4">
             <div className="flex items-center gap-2">
                 <Link href="/">
-                    <img src="/ToThePub-logo.png" alt="To The Pub" className="h-40 w-auto" />
+                    <Image
+                      src="/ToThePub-logo.png"
+                      alt="To The Pub"
+                      width={400}
+                      height={120}
+                      priority
+                      className="h-16 w-auto md:h-20"
+                    />
                 </Link>
             </div>
             {/* Desktop Navigation */}

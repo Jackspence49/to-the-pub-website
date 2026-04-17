@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from "react"
 import { Tag as TagIcon, Loader2, Trash2 } from "lucide-react"
-import { useRouter } from "next/navigation"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -61,7 +60,6 @@ export default function EditBarTagPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
-  const router = useRouter()
 
   // Handle Escape key to close delete confirmation dialog
   useEffect(() => {
@@ -563,7 +561,7 @@ export default function EditBarTagPage() {
               Confirm Deletion
             </h3>
             <p className="text-[var(--dark-sapphire)] mb-6">
-              Are you sure you want to delete the tag <strong>"{selectedTag?.name}"</strong>? This action cannot be undone.
+              Are you sure you want to delete the tag <strong>&ldquo;{selectedTag?.name}&rdquo;</strong>? This action cannot be undone.
             </p>
             <div className="flex justify-end gap-3">
               <Button
