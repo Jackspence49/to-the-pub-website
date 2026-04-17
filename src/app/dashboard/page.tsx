@@ -5,47 +5,47 @@ function DashboardContent() {
   const dashboardActions = [
     {
       label: "Create New Business",
-      href: "/dashboard/new-business",
+      href: "/dashboard/bars/new-business",
       description: "Add a new business to the platform"
     },
     {
       label: "Edit Business Info",
-      href: "/dashboard/edit-bar-info",
+      href: "/dashboard/bars/edit-bar-info",
       description: "Edit bar information"
     },
     {
       label: "Edit Business Hours",
-      href: "/dashboard/edit-hours",
+      href: "/dashboard/bars/edit-hours",
       description: "Edit business operating hours"
     },
     {
       label: "Edit Business's Bar Tags",
-      href: "/dashboard/edit-business-tags",
+      href: "/dashboard/bars/edit-business-tags",
       description: "Edit business's bar tags"
     },
     {
       label: "Create a New Bar Tags",
-      href: "/dashboard/create-bar-tag",
+      href: "/dashboard/bars/create-bar-tag",
       description: "Add new bar tags to the system"
     },
     {
       label: "Edit Bar Tags",
-      href: "/dashboard/edit-bar-tags",
+      href: "/dashboard/bars/edit-bar-tags",
       description: "Edit and Delete bar tags"
     },
     {
       label: "Create & Edit Events",
-      href: "/dashboard/new-event",
+      href: "/dashboard/events/new-event",
       description: "Create and edit events"
     },
     {
       label: "Create & Edit Event Tags",
-      href: "/dashboard/event-tags",
+      href: "/dashboard/events/event-tags",
       description: "Add new event tags to the system"
     },
     {
       label: "Create New User",
-      href: "/dashboard/new-user", 
+      href: "/dashboard/users/new-user",
       description: "Create a new user account"
     }
   ]
