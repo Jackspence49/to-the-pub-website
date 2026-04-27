@@ -14,6 +14,17 @@ export interface AuthTokens {
   user?: User
 }
 
+const decodeJwtPayload = (token: string): Record<string, unknown> | null => {
+  try {
+    const parts = token.split('.')
+    if (parts.length !== 3) return null
+    const payload = atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))
+    return JSON.parse(payload)
+  } catch {
+    return null
+  }
+}
+
 /**
  * Store authentication token and related data in localStorage
  */
@@ -26,26 +37,30 @@ export const storeAuthTokens = (data: {
   exp?: number
 }): void => {
   const token = data.token || data.jwt || data.accessToken
-  
+
   if (!token) {
     throw new Error('No authentication token provided')
   }
 
   localStorage.setItem('authToken', token)
-  
+
   // Store user data if provided
   if (data.user) {
     localStorage.setItem('user', JSON.stringify(data.user))
   }
-  
-  // Handle token expiration
+
+  // Handle token expiration - prefer explicit values, then decode from JWT
   if (data.expiresAt) {
     const expiresAt = typeof data.expiresAt === 'string' ? data.expiresAt : data.expiresAt.toString()
     localStorage.setItem('authTokenExpires', expiresAt)
   } else if (data.exp) {
-    // Convert Unix timestamp to milliseconds
-    const expiresAt = (data.exp * 1000).toString()
-    localStorage.setItem('authTokenExpires', expiresAt)
+    localStorage.setItem('authTokenExpires', (data.exp * 1000).toString())
+  } else {
+    // Decode JWT to extract expiry so tokens don't live forever in localStorage
+    const payload = decodeJwtPayload(token)
+    if (payload?.exp && typeof payload.exp === 'number') {
+      localStorage.setItem('authTokenExpires', (payload.exp * 1000).toString())
+    }
   }
 }
 
@@ -73,7 +88,7 @@ export const isTokenExpired = (): boolean => {
   if (typeof window === 'undefined') return true
   
   const expiresAt = localStorage.getItem('authTokenExpires')
-  if (!expiresAt) return false // If no expiry set, assume it's valid
+  if (!expiresAt) return true // No expiry stored means we can't trust the token
   
   const expiryTime = parseInt(expiresAt, 10)
   return Date.now() > expiryTime

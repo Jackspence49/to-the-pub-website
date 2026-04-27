@@ -76,19 +76,34 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     checkAuth()
   }, [checkAuth])
 
-  // Check auth on mount and set up storage event listener
+  // Check auth on mount and set up event listeners
   useEffect(() => {
     checkAuth()
 
-    // Listen for storage events to sync auth state across tabs
+    // Sync auth state when localStorage changes in another tab
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'authToken' || e.key === 'user') {
         checkAuth()
       }
     }
 
+    // Clear auth state when any API call returns 401 (token rejected by server)
+    const handleUnauthorized = () => {
+      clearAuthTokens()
+      setAuthState({
+        isAuthenticated: false,
+        user: null,
+        token: null,
+        isLoading: false
+      })
+    }
+
     window.addEventListener('storage', handleStorageChange)
-    return () => window.removeEventListener('storage', handleStorageChange)
+    window.addEventListener('auth:unauthorized', handleUnauthorized)
+    return () => {
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('auth:unauthorized', handleUnauthorized)
+    }
   }, [checkAuth])
 
   const value: AuthContextType = {

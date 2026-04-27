@@ -489,7 +489,7 @@ export default function Home() {
               <h3 className="mb-4 text-lg font-medium">Legal</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="#" className="text-muted-foreground hover:text-[var(--vibrant-teal)] transition-colors">
+                  <Link href="/privacy-policy" className="text-muted-foreground hover:text-[var(--vibrant-teal)] transition-colors">
                     Privacy Policy
                   </Link>
                 </li>

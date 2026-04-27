@@ -5,7 +5,7 @@ import type React from "react"
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import BusinessInfoCard from "@/components/cards/BusinessInfoCard"
-import TagsCard from "@/components/cards/TagsCard"
+import BarTagsCard from "@/components/cards/BarTagsCard"
 import BarHoursCard from "@/components/cards/BarHoursCard"
 import { api } from "@/lib/api"
 import { toast } from 'sonner'
@@ -20,7 +20,8 @@ declare global {
 interface Tag {
   id?: number | string
   name: string
-  category: 'type' | 'amenity'
+  category: string
+  description?: string
 }
 
 interface BusinessInfo {
@@ -30,6 +31,7 @@ interface BusinessInfo {
   state: string
   postalCode: string
   phone: string
+  description: string
   website: string
   instagram: string
   facebook: string
@@ -42,7 +44,7 @@ interface BusinessInfo {
 }
 
 interface BarHours {
-  dayOfWeek: number // 0=Sunday, 6=Saturday
+  dayOfWeek: number
   openTime: string
   closeTime: string
   isClosed: boolean
@@ -66,99 +68,57 @@ const SOCIAL_LINK_LABELS: Record<SocialLinkField, string> = {
   eventbrite: "Eventbrite",
 }
 
-
 interface ValidationErrors {
-  business?: {
-    [key: string]: string
-  }
-  barHours?: {
-    [key: string]: string
-  }
+  business?: { [key: string]: string }
+  barHours?: { [key: string]: string }
 }
 
-
 const validatePhoneNumber = (phone: string): boolean => {
-  if (!phone) return true // Optional field
-  const phoneRegex = /^\(?(\d{3})\)?[-.\s]?(\d{3})[-.\s]?(\d{4})$/
-  return phoneRegex.test(phone)
+  if (!phone) return true
+  return /^\(?(\d{3})\)?[-.\s]?(\d{3})[-.\s]?(\d{4})$/.test(phone)
 }
 
 const validateWebsite = (website: string): boolean => {
-  if (!website) return true // Optional field
-  // Regex that accepts full URLs with paths and protocols
+  if (!website) return true
   const websiteRegex = /^(https?:\/\/)?(www\.)?[a-zA-Z0-9][a-zA-Z0-9-]*(\.[a-zA-Z0-9][a-zA-Z0-9-]*)*\.[a-zA-Z]{2,}(\/[^\s]*)?$/
   return websiteRegex.test(website.trim())
 }
 
-const validatePostalCode = (postalCode: string): boolean => {
-  // US ZIP code format (5 digits or ZIP+4)
-  const usZipRegex = /^\d{5}(?:[-\s]\d{4})?$/
-  return usZipRegex.test(postalCode)
-}
+const validatePostalCode = (postalCode: string): boolean =>
+  /^\d{5}(?:[-\s]\d{4})?$/.test(postalCode)
 
-// Helper to safely extract an error message from unknown values
 const getErrorMessage = (err: unknown): string => {
   if (err instanceof Error) return err.message
-  try {
-    return String(err)
-  } catch {
-    return "Unknown error"
-  }
+  try { return String(err) } catch { return "Unknown error" }
 }
 
-
 const US_STATES = [
-  { value: "AL", label: "Alabama" },
-  { value: "AK", label: "Alaska" },
-  { value: "AZ", label: "Arizona" },
-  { value: "AR", label: "Arkansas" },
-  { value: "CA", label: "California" },
-  { value: "CO", label: "Colorado" },
-  { value: "CT", label: "Connecticut" },
-  { value: "DE", label: "Delaware" },
-  { value: "DC", label: "District of Columbia" },
-  { value: "FL", label: "Florida" },
-  { value: "GA", label: "Georgia" },
-  { value: "HI", label: "Hawaii" },
-  { value: "ID", label: "Idaho" },
-  { value: "IL", label: "Illinois" },
-  { value: "IN", label: "Indiana" },
-  { value: "IA", label: "Iowa" },
-  { value: "KS", label: "Kansas" },
-  { value: "KY", label: "Kentucky" },
-  { value: "LA", label: "Louisiana" },
-  { value: "ME", label: "Maine" },
-  { value: "MD", label: "Maryland" },
-  { value: "MA", label: "Massachusetts" },
-  { value: "MI", label: "Michigan" },
-  { value: "MN", label: "Minnesota" },
-  { value: "MS", label: "Mississippi" },
-  { value: "MO", label: "Missouri" },
-  { value: "MT", label: "Montana" },
-  { value: "NE", label: "Nebraska" },
-  { value: "NV", label: "Nevada" },
-  { value: "NH", label: "New Hampshire" },
-  { value: "NJ", label: "New Jersey" },
-  { value: "NM", label: "New Mexico" },
-  { value: "NY", label: "New York" },
-  { value: "NC", label: "North Carolina" },
-  { value: "ND", label: "North Dakota" },
-  { value: "OH", label: "Ohio" },
-  { value: "OK", label: "Oklahoma" },
-  { value: "OR", label: "Oregon" },
-  { value: "PA", label: "Pennsylvania" },
-  { value: "RI", label: "Rhode Island" },
-  { value: "SC", label: "South Carolina" },
-  { value: "SD", label: "South Dakota" },
-  { value: "TN", label: "Tennessee" },
-  { value: "TX", label: "Texas" },
-  { value: "UT", label: "Utah" },
-  { value: "VT", label: "Vermont" },
-  { value: "VA", label: "Virginia" },
-  { value: "WA", label: "Washington" },
-  { value: "WV", label: "West Virginia" },
-  { value: "WI", label: "Wisconsin" },
-  { value: "WY", label: "Wyoming" }
+  { value: "AL", label: "Alabama" }, { value: "AK", label: "Alaska" },
+  { value: "AZ", label: "Arizona" }, { value: "AR", label: "Arkansas" },
+  { value: "CA", label: "California" }, { value: "CO", label: "Colorado" },
+  { value: "CT", label: "Connecticut" }, { value: "DE", label: "Delaware" },
+  { value: "DC", label: "District of Columbia" }, { value: "FL", label: "Florida" },
+  { value: "GA", label: "Georgia" }, { value: "HI", label: "Hawaii" },
+  { value: "ID", label: "Idaho" }, { value: "IL", label: "Illinois" },
+  { value: "IN", label: "Indiana" }, { value: "IA", label: "Iowa" },
+  { value: "KS", label: "Kansas" }, { value: "KY", label: "Kentucky" },
+  { value: "LA", label: "Louisiana" }, { value: "ME", label: "Maine" },
+  { value: "MD", label: "Maryland" }, { value: "MA", label: "Massachusetts" },
+  { value: "MI", label: "Michigan" }, { value: "MN", label: "Minnesota" },
+  { value: "MS", label: "Mississippi" }, { value: "MO", label: "Missouri" },
+  { value: "MT", label: "Montana" }, { value: "NE", label: "Nebraska" },
+  { value: "NV", label: "Nevada" }, { value: "NH", label: "New Hampshire" },
+  { value: "NJ", label: "New Jersey" }, { value: "NM", label: "New Mexico" },
+  { value: "NY", label: "New York" }, { value: "NC", label: "North Carolina" },
+  { value: "ND", label: "North Dakota" }, { value: "OH", label: "Ohio" },
+  { value: "OK", label: "Oklahoma" }, { value: "OR", label: "Oregon" },
+  { value: "PA", label: "Pennsylvania" }, { value: "RI", label: "Rhode Island" },
+  { value: "SC", label: "South Carolina" }, { value: "SD", label: "South Dakota" },
+  { value: "TN", label: "Tennessee" }, { value: "TX", label: "Texas" },
+  { value: "UT", label: "Utah" }, { value: "VT", label: "Vermont" },
+  { value: "VA", label: "Virginia" }, { value: "WA", label: "Washington" },
+  { value: "WV", label: "West Virginia" }, { value: "WI", label: "Wisconsin" },
+  { value: "WY", label: "Wyoming" },
 ]
 
 const DAYS_OF_WEEK: DayInfo[] = [
@@ -168,77 +128,36 @@ const DAYS_OF_WEEK: DayInfo[] = [
   { id: 3, name: "Wednesday", shortName: "Wed" },
   { id: 4, name: "Thursday", shortName: "Thu" },
   { id: 5, name: "Friday", shortName: "Fri" },
-  { id: 6, name: "Saturday", shortName: "Sat" }
+  { id: 6, name: "Saturday", shortName: "Sat" },
 ]
 
-
-// Helper functions to create fresh initial state
 const createInitialBusinessInfo = (): BusinessInfo => ({
-  name: "",
-  streetAddress: "",
-  city: "",
-  state: "",
-  postalCode: "",
-  phone: "",
-  website: "",
-  instagram: "",
-  facebook: "",
-  twitter: "",
-  posh: "",
-  eventbrite: "",
-  latitude: null,
-  longitude: null,
-  tags: [],
+  name: "", streetAddress: "", city: "", state: "", postalCode: "",
+  phone: "", description: "", website: "", instagram: "", facebook: "", twitter: "",
+  posh: "", eventbrite: "", latitude: null, longitude: null, tags: [],
 })
 
-const createInitialBarHours = (): BarHours[] => DAYS_OF_WEEK.map(day => ({
-  dayOfWeek: day.id,
-  openTime: "09:00",
-  closeTime: "22:00",
-  isClosed: false
-}))
+const createInitialBarHours = (): BarHours[] =>
+  DAYS_OF_WEEK.map(day => ({ dayOfWeek: day.id, openTime: "09:00", closeTime: "22:00", isClosed: false }))
 
-export default function Component() {
-  // Initial state values
-  const initialBusinessInfo = createInitialBusinessInfo()
-  const initialBarHours = createInitialBarHours()
-
-  const [businessInfo, setBusinessInfo] = useState<BusinessInfo>(initialBusinessInfo)
-
-  const [barHours, setBarHours] = useState<BarHours[]>(initialBarHours)
-
-
+export default function NewBusinessPage() {
+  const [businessInfo, setBusinessInfo] = useState<BusinessInfo>(createInitialBusinessInfo)
+  const [placeSelected, setPlaceSelected] = useState(false)
+  const [barHours, setBarHours] = useState<BarHours[]>(createInitialBarHours)
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({})
-  // removed isGoogleLoaded (unused) and use a safer unknown type for autocomplete instance
+  const [availableTags, setAvailableTags] = useState<Tag[]>([])
+  const [tagsLoading, setTagsLoading] = useState(false)
+  const [tagsError, setTagsError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [serverError, setServerError] = useState<string | null>(null)
+  const [formResetKey, setFormResetKey] = useState(0)
+
   const autocompleteRef = useRef<HTMLInputElement>(null)
-  // Minimal typing for the Google Autocomplete instance we use
   type AutocompleteInstance = {
     addListener: (eventName: string, handler: () => void) => void
     getPlace: () => unknown
   }
   const autocompleteInstance = useRef<AutocompleteInstance | null>(null)
-
-  // Tags fetched from backend (no local fallback)
-  const [availableTags, setAvailableTags] = useState<Tag[]>([])
-  const [tagsLoading, setTagsLoading] = useState<boolean>(false)
-  const [tagsError, setTagsError] = useState<string | null>(null)
-  // Use the server-side proxy to avoid browser CORS issues
-  const TAGS_ENDPOINT = "/api/tags"
-  const BARS_ENDPOINT = "/api/bars"
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
-  const [serverError, setServerError] = useState<string | null>(null)
-  const [formResetKey, setFormResetKey] = useState<number>(0)
-  const spotlightStats = [
-    { value: "48h", label: "Avg approval" },
-    { value: "3K+", label: "Events activated" },
-    { value: "24/7", label: "Support coverage" },
-  ]
-
-  const experienceSteps = [
-    { title: "Verify your venue", description: "Search your address, confirm core details, and add standout tags." },
-    { title: "Set live hours", description: "Tell guests when you are pouring, plus note special closures." },
-    { title: "Sync promotion", description: "Drop your social and ticketing links so we can amplify in real time." },
-  ]
 
   useEffect(() => {
     let mounted = true
@@ -246,99 +165,53 @@ export default function Component() {
       setTagsLoading(true)
       setTagsError(null)
       try {
-        const data = await api.get(TAGS_ENDPOINT, { requireAuth: true }).then(res => res.json())
-
-        // Normalize response: accept an array or an object with `tags` or `data` fields
+        const data = await api.get("/api/barTags").then(res => res.json())
         let tags: Tag[] = []
-        if (Array.isArray(data)) {
-          tags = data
-        } else if (Array.isArray(data.tags)) {
-          tags = data.tags
-        } else if (Array.isArray(data.data)) {
-          tags = data.data
-        }
-
-        if (mounted) {
-          // Upstream may return [] - keep whatever the upstream sent
-          setAvailableTags(tags)
-        }
+        if (Array.isArray(data)) tags = data
+        else if (Array.isArray(data.tags)) tags = data.tags
+        else if (Array.isArray(data.data)) tags = data.data
+        if (mounted) setAvailableTags(tags)
       } catch (err: unknown) {
-        const message = getErrorMessage(err)
-        console.error("Error fetching tags:", message)
-        if (mounted) setTagsError(message)
+        if (mounted) setTagsError(getErrorMessage(err))
       } finally {
         if (mounted) setTagsLoading(false)
       }
     }
-
     fetchTags()
-
     return () => { mounted = false }
   }, [])
 
   useEffect(() => {
-    // Load Google Places API
-    const loadGoogleMaps = () => {
-      if (window.google) {
-        initializeAutocomplete()
-        return
-      }
-
-      // Check if script already exists
-      const existingScript = document.querySelector('script[src*="maps.googleapis.com"]')
-      if (existingScript) {
-        return
-      }
-
-      const script = document.createElement("script")
-      script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`
-      script.async = true
-      script.defer = true
-      script.onload = () => {
-        initializeAutocomplete()
-      }
-      document.head.appendChild(script)
-    }
-
     const initializeAutocomplete = () => {
-      if (autocompleteRef.current && window.google) {
-        // Access `window.google.maps.places.Autocomplete` via a narrowed window type to avoid `any`
-        const win = window as unknown as {
-          google?: {
-            maps?: {
-              places?: {
-                Autocomplete?: new (input: HTMLInputElement | null, opts: unknown) => AutocompleteInstance
-              }
-            }
-          }
-        }
-
-        const AutocompleteCtor = win.google?.maps?.places?.Autocomplete
-        if (AutocompleteCtor && autocompleteRef.current) {
-          autocompleteInstance.current = new AutocompleteCtor(autocompleteRef.current, {
-            types: ["establishment"],
-            fields: ["name", "formatted_address", "address_components", "formatted_phone_number", "website", "geometry"],
-          })
-
-          // addListener exists on the Autocomplete instance
-          autocompleteInstance.current.addListener("place_changed", handlePlaceSelect)
-        }
+      const win = window as unknown as {
+        google?: { maps?: { places?: { Autocomplete?: new (input: HTMLInputElement | null, opts: unknown) => AutocompleteInstance } } }
+      }
+      const AutocompleteCtor = win.google?.maps?.places?.Autocomplete
+      if (AutocompleteCtor && autocompleteRef.current) {
+        autocompleteInstance.current = new AutocompleteCtor(autocompleteRef.current, {
+          types: ["establishment"],
+          fields: ["name", "address_components", "formatted_phone_number", "website", "geometry"],
+        })
+        autocompleteInstance.current.addListener("place_changed", handlePlaceSelect)
       }
     }
 
-    loadGoogleMaps()
+    if (window.google) {
+      initializeAutocomplete()
+      return
+    }
+    if (document.querySelector('script[src*="maps.googleapis.com"]')) return
+
+    const script = document.createElement("script")
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`
+    script.async = true
+    script.defer = true
+    script.onload = initializeAutocomplete
+    document.head.appendChild(script)
 
     return () => {
       if (autocompleteInstance.current) {
-        const win = window as unknown as {
-          google?: {
-            maps?: {
-              event?: {
-                clearInstanceListeners?: (instance: unknown) => void
-              }
-            }
-          }
-        }
+        const win = window as unknown as { google?: { maps?: { event?: { clearInstanceListeners?: (i: unknown) => void } } } }
         win.google?.maps?.event?.clearInstanceListeners?.(autocompleteInstance.current)
       }
     }
@@ -346,181 +219,113 @@ export default function Component() {
 
   const handlePlaceSelect = () => {
     if (!autocompleteInstance.current) return
-
-    const place = autocompleteInstance.current.getPlace() as unknown
-
-    // Define the minimal shape we expect from Google Places for our use
     type PlaceShape = {
       address_components?: Array<{ types: string[]; long_name?: string; short_name?: string }>
       geometry?: { location?: { lat: () => number; lng: () => number } }
       name?: string
       formatted_phone_number?: string
       website?: string
-      formatted_address?: string
     }
+    const place = autocompleteInstance.current.getPlace() as PlaceShape | null
+    if (!place?.address_components) return
 
-    const placeObj = place as PlaceShape | null
+    let streetNumber = "", route = "", city = "", state = "", postalCode = ""
+    place.address_components.forEach(c => {
+      if (c.types.includes("street_number") && c.long_name) streetNumber = c.long_name
+      if (c.types.includes("route") && c.long_name) route = c.long_name
+      if (c.types.includes("locality") && c.long_name) city = c.long_name
+      // Fallback to postal_town (common in UK/non-US results)
+      if (!city && c.types.includes("postal_town") && c.long_name) city = c.long_name
+      if (c.types.includes("administrative_area_level_1") && c.short_name) state = c.short_name
+      if (c.types.includes("postal_code") && c.long_name) postalCode = c.long_name
+    })
 
-    if (placeObj && placeObj.address_components) {
-      const addressComponents = placeObj.address_components
+    const lat = typeof place.geometry?.location?.lat === "function" ? place.geometry.location.lat() : null
+    const lng = typeof place.geometry?.location?.lng === "function" ? place.geometry.location.lng() : null
 
-      let streetNumber = ""
-      let route = ""
-      let city = ""
-      let state = ""
-      let postalCode = ""
+    setBusinessInfo(prev => ({
+      ...prev,
+      name: place.name || "",
+      streetAddress: `${streetNumber} ${route}`.trim(),
+      city, state, postalCode,
+      phone: place.formatted_phone_number || "",
+      website: place.website || "",
+      latitude: lat,
+      longitude: lng,
+      tags: [],
+    }))
+    setPlaceSelected(true)
+  }
 
-      addressComponents.forEach((component: { types: string[]; long_name?: string; short_name?: string }) => {
-        const types = component.types
-
-        if (types.includes("street_number") && component.long_name) {
-          streetNumber = component.long_name
-        }
-        if (types.includes("route") && component.long_name) {
-          route = component.long_name
-        }
-        if (types.includes("locality") && component.long_name) {
-          city = component.long_name
-        }
-        if (types.includes("administrative_area_level_1") && component.short_name) {
-          state = component.short_name
-        }
-        if (types.includes("postal_code") && component.long_name) {
-          postalCode = component.long_name
-        }
-      })
-
-      // Extract latitude and longitude from geometry
-      let latitude = null
-      let longitude = null
-      if (placeObj.geometry && placeObj.geometry.location && typeof placeObj.geometry.location.lat === "function") {
-        latitude = placeObj.geometry.location.lat()
-      }
-      if (placeObj.geometry && placeObj.geometry.location && typeof placeObj.geometry.location.lng === "function") {
-        longitude = placeObj.geometry.location.lng()
-      }
-
-      setBusinessInfo((prev) => ({
-        ...prev,
-        name: placeObj.name || "",
-        streetAddress: `${streetNumber} ${route}`.trim(),
-        city: city,
-        state: state,
-        postalCode: postalCode,
-        phone: placeObj.formatted_phone_number || "",
-        website: placeObj.website || "",
-        latitude: latitude,
-        longitude: longitude,
-        tags: [],
-      }))
-    }
+  const handleClearPlace = () => {
+    setBusinessInfo(createInitialBusinessInfo())
+    setPlaceSelected(false)
+    setValidationErrors({})
+    setServerError(null)
+    if (autocompleteRef.current) autocompleteRef.current.value = ""
   }
 
   const handleBusinessInfoChange = (field: keyof BusinessInfo, value: string) => {
-    setBusinessInfo((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
-    
-    // Clear server errors when user makes changes to critical fields
+    setBusinessInfo(prev => ({ ...prev, [field]: value }))
     if (['name', 'streetAddress', 'city', 'state', 'postalCode'].includes(field) && serverError) {
       setServerError(null)
     }
   }
 
   const handleBarHoursChange = (dayOfWeek: number, field: keyof BarHours, value: string | boolean) => {
-    setBarHours((prev) =>
-      prev.map((hours) =>
-        hours.dayOfWeek === dayOfWeek
-          ? { ...hours, [field]: value }
-          : hours
-      )
-    )
+    setBarHours(prev => prev.map(h => h.dayOfWeek === dayOfWeek ? { ...h, [field]: value } : h))
   }
 
-  const handleTagAdd = (tag: Tag) => {
-    setBusinessInfo((prev) => ({
-      ...prev,
-      tags: [...prev.tags, tag]
-    }))
-  }
+  const handleTagAdd = (tag: Tag) =>
+    setBusinessInfo(prev => ({ ...prev, tags: [...prev.tags, tag] }))
 
-  const handleTagRemove = (tagToRemove: Tag) => {
-    setBusinessInfo((prev) => ({
+  const handleTagRemove = (tagToRemove: Tag) =>
+    setBusinessInfo(prev => ({
       ...prev,
       tags: prev.tags.filter(tag => {
-        if (tag.id !== undefined && tagToRemove.id !== undefined) {
-          return String(tag.id) !== String(tagToRemove.id)
-        }
+        if (tag.id !== undefined && tagToRemove.id !== undefined) return String(tag.id) !== String(tagToRemove.id)
         return !(tag.name === tagToRemove.name && tag.category === tagToRemove.category)
       })
     }))
-  }
-
-
 
   const validateForm = (): boolean => {
-    const errors: ValidationErrors = {
-      business: {},
-      barHours: {},
-    }
+    const errors: ValidationErrors = { business: {}, barHours: {} }
     let isValid = true
 
-    // Business Info Validation
-    if (!businessInfo.name.trim()) {
-      errors.business!.name = "Business name is required"
-      isValid = false
-    }
+    if (!businessInfo.name.trim()) { errors.business!.name = "Business name is required"; isValid = false }
+    if (!businessInfo.streetAddress.trim()) { errors.business!.streetAddress = "Street address is required"; isValid = false }
+    if (!businessInfo.city.trim()) { errors.business!.city = "City is required"; isValid = false }
+    if (!businessInfo.state.trim()) { errors.business!.state = "State is required"; isValid = false }
 
-    if (!businessInfo.streetAddress.trim()) {
-      errors.business!.streetAddress = "Street address is required"
+    // Give a specific message when Google omitted the postal code
+    if (!businessInfo.postalCode.trim()) {
+      errors.business!.postalCode = placeSelected
+        ? "Google didn't return a postal code — please add it"
+        : "ZIP code is required"
       isValid = false
-    }
-
-    if (!businessInfo.city.trim()) {
-      errors.business!.city = "City is required"
-      isValid = false
-    }
-
-    if (!businessInfo.state.trim()) {
-      errors.business!.state = "State is required"
-      isValid = false
-    }
-
-    if (!validatePostalCode(businessInfo.postalCode)) {
-      errors.business!.postalCode = "Invalid postal code format"
+    } else if (!validatePostalCode(businessInfo.postalCode)) {
+      errors.business!.postalCode = "Invalid ZIP code format"
       isValid = false
     }
 
     if (businessInfo.phone && !validatePhoneNumber(businessInfo.phone)) {
-      errors.business!.phone = "Invalid phone number format"
-      isValid = false
+      errors.business!.phone = "Invalid phone number format"; isValid = false
     }
-
     if (businessInfo.website && !validateWebsite(businessInfo.website)) {
-      errors.business!.website = "Invalid website URL format"
-      isValid = false
+      errors.business!.website = "Invalid website URL format"; isValid = false
     }
 
-    SOCIAL_LINK_FIELDS.forEach((field) => {
-      const value = businessInfo[field]
-      if (value && !validateWebsite(value)) {
+    SOCIAL_LINK_FIELDS.forEach(field => {
+      if (businessInfo[field] && !validateWebsite(businessInfo[field])) {
         errors.business![field] = `Invalid ${SOCIAL_LINK_LABELS[field]} URL format`
         isValid = false
       }
     })
 
-    // Bar Hours Validation
-    barHours.forEach((hours) => {
-      if (!hours.isClosed) {
-        if (!hours.openTime) {
-          errors.barHours![`${hours.dayOfWeek}_openTime`] = "Open time is required"
-          isValid = false
-        }
-        if (!hours.closeTime) {
-          errors.barHours![`${hours.dayOfWeek}_closeTime`] = "Close time is required"
-          isValid = false
-        }
+    barHours.forEach(h => {
+      if (!h.isClosed) {
+        if (!h.openTime) { errors.barHours![`${h.dayOfWeek}_openTime`] = "Open time is required"; isValid = false }
+        if (!h.closeTime) { errors.barHours![`${h.dayOfWeek}_closeTime`] = "Close time is required"; isValid = false }
       }
     })
 
@@ -528,245 +333,131 @@ export default function Component() {
     return isValid
   }
 
-  const formatTimeHHMMSS = (t: string) => {
+  const formatTime = (t: string) => {
     if (!t) return t
-    // If already has seconds
     if (/^\d{2}:\d{2}:\d{2}$/.test(t)) return t
     if (/^\d{2}:\d{2}$/.test(t)) return `${t}:00`
     return t
   }
 
-  const dedupeBarHours = (hoursArr: BarHours[]) => {
+  const dedupeBarHours = (arr: BarHours[]) => {
     const seen = new Set<number>()
-    const result: BarHours[] = []
-    
-    // Preserve original order while deduplicating
-    for (const h of hoursArr) {
-      if (!seen.has(h.dayOfWeek)) {
-        seen.add(h.dayOfWeek)
-        result.push(h)
-      }
-    }
-    return result
+    return arr.filter(h => { if (seen.has(h.dayOfWeek)) return false; seen.add(h.dayOfWeek); return true })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     setServerError(null)
+    if (!validateForm() || isSubmitting) return
 
-    if (!validateForm()) {
+    // Defensive lat/lng range guard (user can't edit these, but assert before sending)
+    if (businessInfo.latitude !== null && (businessInfo.latitude < -90 || businessInfo.latitude > 90)) {
+      toast.error("Invalid coordinates", { description: "Latitude out of range.", duration: Infinity })
+      return
+    }
+    if (businessInfo.longitude !== null && (businessInfo.longitude < -180 || businessInfo.longitude > 180)) {
+      toast.error("Invalid coordinates", { description: "Longitude out of range.", duration: Infinity })
       return
     }
 
-    if (isSubmitting) return
     setIsSubmitting(true)
 
     try {
-      const dedupedHours = dedupeBarHours(barHours)
-
-      // Build payload matching the sample shape you provided.
-      // Assumptions: description, instagram, facebook are not collected in the form so we send sensible defaults.
       const payload = {
         name: businessInfo.name,
-        description: "", // no description field in the current form
         address_street: businessInfo.streetAddress,
         address_city: businessInfo.city,
         address_state: businessInfo.state,
         address_zip: businessInfo.postalCode,
         latitude: businessInfo.latitude,
         longitude: businessInfo.longitude,
-        phone: businessInfo.phone,
+        phone: businessInfo.phone || null,
+        description: businessInfo.description || null,
         website: businessInfo.website || null,
         instagram: businessInfo.instagram || null,
         facebook: businessInfo.facebook || null,
         twitter: businessInfo.twitter || null,
         posh: businessInfo.posh || null,
         eventbrite: businessInfo.eventbrite || null,
-        is_active: true,
-        hours: dedupedHours.map(h => ({
+        hours: dedupeBarHours(barHours).map(h => ({
           day_of_week: h.dayOfWeek,
-          open_time: h.isClosed ? null : formatTimeHHMMSS(h.openTime),
-          close_time: h.isClosed ? null : formatTimeHHMMSS(h.closeTime),
           is_closed: h.isClosed,
+          open_time: h.isClosed ? null : formatTime(h.openTime),
+          close_time: h.isClosed ? null : formatTime(h.closeTime),
         })),
-        tag_ids: businessInfo.tags
-          .map(t => (t.id !== undefined ? String(t.id) : t.name))
-          .filter(Boolean),
+        tag_ids: businessInfo.tags.map(t => (t.id !== undefined ? String(t.id) : t.name)).filter(Boolean),
       }
 
-      const res = await api.post(BARS_ENDPOINT, payload, { requireAuth: true })
+      const res = await api.post("/api/bars", payload, { requireAuth: true })
 
       if (!res.ok) {
         let errBody: unknown = null
-        try {
-          errBody = await res.json()
-        } catch {
-          // ignore
-        }
+        try { errBody = await res.json() } catch { /* ignore */ }
 
         let message = `Server returned ${res.status} ${res.statusText}`
-        let isDuplicate = false
-
         if (errBody && typeof errBody === 'object') {
           const obj = errBody as Record<string, unknown>
-          if (typeof obj.error === 'string') {
-            message = obj.error
-            // Check if this is a duplicate bar error (409 Conflict)
-            if (res.status === 409) {
-              isDuplicate = true
-            }
-          }
+          if (typeof obj.error === 'string') message = obj.error
           if (obj.validationErrors && typeof obj.validationErrors === 'object') {
-            setValidationErrors((prev) => ({ ...prev, ...(obj.validationErrors as ValidationErrors) }))
+            setValidationErrors(prev => ({ ...prev, ...(obj.validationErrors as ValidationErrors) }))
           }
         }
 
         setServerError(message)
-        
-        // Show different toast messages for duplicate vs other errors
-        if (isDuplicate) {
-          toast.error("Duplicate Business Detected", {
-            description: "A business with this name and address already exists.",
-            duration: Infinity,
-          })
-        } else {
-          toast.error("Failed to add business", {
-            description: message,
-            duration: Infinity,
-          })
-        }
-        
-        // Scroll to top to show error message
+        toast.error(res.status === 409 ? "Duplicate Business Detected" : "Failed to add business", {
+          description: res.status === 409 ? "A business with this name and address already exists." : message,
+          duration: Infinity,
+        })
         window.scrollTo({ top: 0, behavior: 'smooth' })
         return
       }
 
-      // Success
-      toast.success("Business added successfully!", {
-        description: "Your business has been registered and is now live.",
-        duration: 4000,
-      })
-      
-      // Reset form to initial state - create fresh instances
+      toast.success("Business added successfully!", { duration: 4000 })
       setBusinessInfo(createInitialBusinessInfo())
+      setPlaceSelected(false)
       setBarHours(createInitialBarHours())
       setValidationErrors({})
-      setFormResetKey(prev => prev + 1) // Force BarHoursCard to remount
+      setFormResetKey(prev => prev + 1)
       setServerError(null)
-      
-      // Clear the autocomplete search input
-      if (autocompleteRef.current) {
-        autocompleteRef.current.value = ''
-      }
-      
-      // Scroll to top of the page
+      if (autocompleteRef.current) autocompleteRef.current.value = ""
       window.scrollTo({ top: 0, behavior: 'smooth' })
-      
     } catch (err: unknown) {
-      const errorMessage = getErrorMessage(err)
-      setServerError(errorMessage)
-      toast.error("Unexpected error occurred", {
-        description: errorMessage,
-        duration: Infinity,
-      })
+      const msg = getErrorMessage(err)
+      setServerError(msg)
+      toast.error("Unexpected error occurred", { description: msg, duration: Infinity })
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-950 text-white">
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.35),_transparent_60%)]" />
-        <div className="absolute inset-x-0 top-1/3 h-1/2 bg-[radial-gradient(circle_at_bottom,_rgba(236,72,153,0.25),_transparent_55%)] blur-3xl" />
+    <div className="mx-auto max-w-3xl px-4 py-8">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-[var(--dark-sapphire,#1A2B3C)]">Add New Bar</h1>
+        <p className="mt-1 text-sm text-slate-500">Admin only · POST /bars</p>
       </div>
 
-      <div className="relative mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="grid gap-8 lg:grid-cols-[1.3fr_0.7fr]">
-          <section className="space-y-6">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1 text-sm font-semibold uppercase tracking-[0.2em]">
-              <span className="h-2 w-2 rounded-full bg-emerald-300" />
-              New Partner Flow
-            </div>
-            <div className="space-y-4">
-              <h1 className="font-serif text-4xl leading-tight text-white sm:text-5xl">
-                Bring your bar to the To The Pub community
-              </h1>
-              <p className="max-w-2xl text-lg text-white/80">
-                Showcase your best nights, sync promo calendars, and unlock our curated audience with a guided onboarding designed for independent venues.
-              </p>
-            </div>
-            <div className="flex flex-wrap gap-6">
-              {spotlightStats.map((stat) => (
-                <div key={stat.label} className="min-w-[120px] space-y-1">
-                  <p className="text-3xl font-semibold text-white sm:text-4xl">{stat.value}</p>
-                  <p className="text-sm uppercase tracking-wide text-white/60">{stat.label}</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <aside className="rounded-3xl border border-white/15 bg-white/5 p-6 backdrop-blur">
-            <h2 className="text-lg font-semibold text-white">What to expect</h2>
-            <div className="mt-6 space-y-4">
-              {experienceSteps.map((step, idx) => (
-                <div key={step.title} className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-base font-semibold text-white">
-                    {idx + 1}
-                  </div>
-                  <div>
-                    <p className="font-medium text-white">{step.title}</p>
-                    <p className="text-sm text-white/70">{step.description}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </aside>
-        </div>
-
-        <div className="mt-12 rounded-[32px] border border-white/10 bg-white text-foreground shadow-2xl shadow-black/20">
-          <div className="border-b border-slate-100 px-6 py-8 sm:px-10">
-            <p className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">Registration</p>
-            <div className="mt-4 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <h2 className="text-3xl font-bold text-[var(--dark-sapphire,#0f172a)]">Business Registration</h2>
-                <p className="mt-2 text-base text-slate-600">Create your business account to get started.</p>
-              </div>
-              <div className="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-2 text-sm text-slate-600">
-                <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                Secure workspace
-              </div>
-            </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {serverError && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            {serverError}
           </div>
+        )}
 
-          <form onSubmit={handleSubmit} className="space-y-8 px-6 py-8 sm:px-10">
-            {serverError && (
-              <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                {serverError}
-              </div>
-            )}
+        <BusinessInfoCard
+          key={formResetKey}
+          businessInfo={businessInfo}
+          validationErrors={validationErrors}
+          onChange={handleBusinessInfoChange}
+          autocompleteRef={autocompleteRef}
+          US_STATES={US_STATES}
+          placeSelected={placeSelected}
+          onClearPlace={handleClearPlace}
+        />
 
-            <BusinessInfoCard
-              businessInfo={businessInfo}
-              validationErrors={validationErrors}
-              onChange={handleBusinessInfoChange}
-              autocompleteRef={autocompleteRef}
-              US_STATES={US_STATES}
-            />
-
-            <div className="grid gap-6 rounded-3xl border border-dashed border-slate-200 bg-slate-50/80 px-6 py-5 sm:grid-cols-2">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Curated tags</p>
-                <p className="mt-1 text-sm text-slate-600">Stack key vibes and amenities so guests instantly know what makes your space magnetic.</p>
-              </div>
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-wide text-slate-500">Operating rhythm</p>
-                <p className="mt-1 text-sm text-slate-600">List when the lights are on, note seasonal closures, and keep explorers in sync.</p>
-              </div>
-            </div>
-
-            <TagsCard
+        {(placeSelected || validationErrors.business) && (
+          <>
+            <BarTagsCard
               selectedTags={businessInfo.tags}
               availableTags={availableTags}
               tagsLoading={tagsLoading}
@@ -776,7 +467,7 @@ export default function Component() {
             />
 
             <BarHoursCard
-              key={formResetKey}
+              key={`hours-${formResetKey}`}
               days={DAYS_OF_WEEK}
               barHours={barHours}
               onChange={handleBarHoursChange}
@@ -784,22 +475,18 @@ export default function Component() {
               preserveUserOrder={true}
             />
 
-            <div className="flex flex-col gap-4 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-              <p>
-                Need help? <span className="font-semibold text-accent">Contact our onboarding team</span>
-              </p>
+            <div className="flex justify-end">
               <Button
                 type="submit"
-                size="lg"
-                className="rounded-2xl bg-accent px-10 text-base font-semibold uppercase tracking-wide text-white hover:bg-accent/90"
+                className="bg-accent px-8 font-semibold text-white hover:bg-accent/90"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? "Submitting..." : "Add Business"}
+                {isSubmitting ? "Submitting…" : "Add Business"}
               </Button>
             </div>
-          </form>
-        </div>
-      </div>
+          </>
+        )}
+      </form>
     </div>
   )
 }
